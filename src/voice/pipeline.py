@@ -1,9 +1,12 @@
 """Voice pipeline — sequences STT → agent → TTS.
 
-VoicePipeline has a single responsibility: coordinate the three steps of a
-voice interaction. It depends on the STTProvider and TTSProvider abstractions,
-not on any concrete implementation, so it can be used with real models in
-production or with lightweight mocks in tests.
+Design:
+- VoicePipeline has a single responsibility: coordinate the three steps of a
+  voice interaction (SRP).
+- It depends on STTProvider, TTSProvider, and AgentRunner abstractions, not
+  on any concrete implementation (DIP).
+- The DefaultAgentRunner wraps the real run_agent function so the pipeline
+  can be tested with a lightweight mock without importing the agent (OCP).
 """
 
 import os
@@ -11,11 +14,26 @@ import tempfile
 
 import structlog
 
-from src.agent.graph import run_agent
-from src.voice.protocols import STTProvider, TTSProvider
+from src.voice.protocols import AgentRunner, STTProvider, TTSProvider
 
 logger = structlog.get_logger()
 
+
+# ---------------------------------------------------------------------------
+# Default agent runner — thin wrapper so the pipeline stays decoupled
+# ---------------------------------------------------------------------------
+
+class DefaultAgentRunner(AgentRunner):
+    """Delegates to the real LangGraph agent."""
+
+    async def run(self, message: str) -> str:
+        from src.agent.graph import run_agent
+        return await run_agent(message)
+
+
+# ---------------------------------------------------------------------------
+# Pipeline
+# ---------------------------------------------------------------------------
 
 class VoicePipeline:
     """Orchestrates a full voice round-trip.
@@ -25,20 +43,23 @@ class VoicePipeline:
     3. Synthesises the agent's response back to audio (TTS).
 
     Args:
-        stt: Any STTProvider implementation.
-        tts: Any TTSProvider implementation.
-        output_dir: Directory where response audio files are written.
-                    Defaults to the system temp directory.
+        stt:          Any STTProvider implementation.
+        tts:          Any TTSProvider implementation.
+        agent_runner: Any AgentRunner implementation.
+        output_dir:   Directory where response audio files are written.
+                      Defaults to the system temp directory.
     """
 
     def __init__(
         self,
         stt: STTProvider,
         tts: TTSProvider,
+        agent_runner: AgentRunner | None = None,
         output_dir: str | None = None,
     ) -> None:
         self._stt = stt
         self._tts = tts
+        self._agent = agent_runner or DefaultAgentRunner()
         self._output_dir = output_dir or tempfile.gettempdir()
 
     async def process(self, audio_path: str) -> str:
@@ -61,7 +82,7 @@ class VoicePipeline:
 
         logger.info("voice_pipeline_transcribed", text_length=len(text))
 
-        response_text = await run_agent(text)
+        response_text = await self._agent.run(text)
 
         output_path = os.path.join(self._output_dir, "response.wav")
         self._tts.speak(response_text, output_path)

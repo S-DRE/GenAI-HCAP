@@ -174,7 +174,7 @@ class TestChatRAGToolIntegration:
         mock_llm.invoke.side_effect = [rag_tool_call, final_answer]
 
         with patch("src.agent.graph.ChatGroq", return_value=mock_llm), \
-             patch("src.tools.rag.Chroma") as mock_chroma:
+             patch("langchain_chroma.Chroma") as mock_chroma:
             mock_doc = MagicMock()
             mock_doc.page_content = "Fasting target: 4.0–7.0 mmol/L"
             mock_chroma.return_value.similarity_search.return_value = [mock_doc]
@@ -205,7 +205,7 @@ class TestChatRAGToolIntegration:
         mock_llm.invoke.side_effect = [rag_tool_call, final_answer]
 
         with patch("src.agent.graph.ChatGroq", return_value=mock_llm), \
-             patch("src.tools.rag.Chroma") as mock_chroma:
+             patch("langchain_chroma.Chroma") as mock_chroma:
             mock_doc = MagicMock()
             mock_doc.page_content = "Morning: Metformin 500mg. Evening: Metformin 500mg."
             mock_chroma.return_value.similarity_search.return_value = [mock_doc]

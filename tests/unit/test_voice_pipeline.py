@@ -1,22 +1,24 @@
 """Tests for VoicePipeline.
 
-All tests inject mock STT and TTS implementations via the STTProvider /
-TTSProvider interfaces. No real models are loaded, no files are written to
-disk, and the agent is mocked — making these fast, offline, and dependency-free.
+After the SOLID refactor, VoicePipeline accepts an AgentRunner parameter, so
+the agent is injected rather than imported. This makes all tests simpler —
+no patching of run_agent needed.
 """
 
-import os
+import tempfile
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.voice.pipeline import VoicePipeline
-from src.voice.protocols import STTProvider, TTSProvider
+from src.voice.pipeline import DefaultAgentRunner, VoicePipeline
+from src.voice.protocols import AgentRunner, STTProvider, TTSProvider
 
+
+# ---------------------------------------------------------------------------
+# Test doubles
+# ---------------------------------------------------------------------------
 
 class MockSTT(STTProvider):
-    """Minimal STT implementation for testing."""
-
     def __init__(self, text: str = "Hello, I need help."):
         self._text = text
 
@@ -25,8 +27,6 @@ class MockSTT(STTProvider):
 
 
 class MockTTS(TTSProvider):
-    """Minimal TTS implementation for testing."""
-
     def __init__(self, output_path: str = "response.wav"):
         self._output_path = output_path
         self.last_text: str | None = None
@@ -36,108 +36,163 @@ class MockTTS(TTSProvider):
         return output_path
 
 
-@pytest.fixture
-def pipeline():
-    return VoicePipeline(stt=MockSTT(), tts=MockTTS())
+class MockAgentRunner(AgentRunner):
+    def __init__(self, response: str = "Take your medication."):
+        self._response = response
+        self.received_message: str | None = None
 
+    async def run(self, message: str) -> str:
+        self.received_message = message
+        return self._response
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def agent():
+    return MockAgentRunner()
+
+
+@pytest.fixture
+def pipeline(agent):
+    return VoicePipeline(stt=MockSTT(), tts=MockTTS(), agent_runner=agent)
+
+
+# ---------------------------------------------------------------------------
+# AgentRunner protocol
+# ---------------------------------------------------------------------------
+
+class TestAgentRunnerProtocol:
+    def test_default_agent_runner_implements_protocol(self):
+        assert issubclass(DefaultAgentRunner, AgentRunner)
+
+    def test_mock_agent_runner_implements_protocol(self):
+        assert issubclass(MockAgentRunner, AgentRunner)
+
+
+# ---------------------------------------------------------------------------
+# VoicePipeline.process
+# ---------------------------------------------------------------------------
 
 class TestVoicePipelineProcess:
     async def test_returns_output_path(self, pipeline):
-        with patch("src.voice.pipeline.run_agent", new=AsyncMock(return_value="Take your medication.")):
-            result = await pipeline.process("input.wav")
+        result = await pipeline.process("input.wav")
         assert isinstance(result, str)
         assert result.endswith(".wav")
 
-    async def test_transcribed_text_passed_to_agent(self, pipeline):
-        mock_agent = AsyncMock(return_value="ok")
-        with patch("src.voice.pipeline.run_agent", new=mock_agent):
-            await pipeline.process("input.wav")
-        mock_agent.assert_called_once_with("Hello, I need help.")
+    async def test_transcribed_text_passed_to_agent(self, agent):
+        pipeline = VoicePipeline(stt=MockSTT("Hello, I need help."), tts=MockTTS(), agent_runner=agent)
+        await pipeline.process("input.wav")
+        assert agent.received_message == "Hello, I need help."
 
     async def test_agent_response_passed_to_tts(self):
         mock_tts = MockTTS()
-        pipeline = VoicePipeline(stt=MockSTT("What time is my appointment?"), tts=mock_tts)
-        with patch("src.voice.pipeline.run_agent", new=AsyncMock(return_value="Your appointment is at 10am.")):
-            await pipeline.process("input.wav")
+        agent = MockAgentRunner("Your appointment is at 10am.")
+        pipeline = VoicePipeline(stt=MockSTT("What time is my appointment?"), tts=mock_tts, agent_runner=agent)
+        await pipeline.process("input.wav")
         assert mock_tts.last_text == "Your appointment is at 10am."
 
     async def test_raises_on_empty_transcription(self):
-        pipeline = VoicePipeline(stt=MockSTT(""), tts=MockTTS())
-        with patch("src.voice.pipeline.run_agent", new=AsyncMock(return_value="ok")):
-            with pytest.raises(ValueError, match="no text"):
-                await pipeline.process("silent.wav")
+        pipeline = VoicePipeline(stt=MockSTT(""), tts=MockTTS(), agent_runner=MockAgentRunner())
+        with pytest.raises(ValueError, match="no text"):
+            await pipeline.process("silent.wav")
 
     async def test_stt_called_with_correct_path(self):
         mock_stt = MagicMock(spec=STTProvider)
         mock_stt.transcribe.return_value = "Hello"
-        pipeline = VoicePipeline(stt=mock_stt, tts=MockTTS())
-        with patch("src.voice.pipeline.run_agent", new=AsyncMock(return_value="ok")):
-            await pipeline.process("/tmp/audio.wav")
+        pipeline = VoicePipeline(stt=mock_stt, tts=MockTTS(), agent_runner=MockAgentRunner())
+        await pipeline.process("/tmp/audio.wav")
         mock_stt.transcribe.assert_called_once_with("/tmp/audio.wav")
 
 
+# ---------------------------------------------------------------------------
+# Dependency inversion
+# ---------------------------------------------------------------------------
+
 class TestVoicePipelineDependencyInversion:
     def test_accepts_any_stt_provider(self):
-        """VoicePipeline should accept any STTProvider, not just WhisperSTT."""
         custom_stt = MockSTT("custom transcription")
-        pipeline = VoicePipeline(stt=custom_stt, tts=MockTTS())
+        pipeline = VoicePipeline(stt=custom_stt, tts=MockTTS(), agent_runner=MockAgentRunner())
         assert pipeline._stt is custom_stt
 
     def test_accepts_any_tts_provider(self):
-        """VoicePipeline should accept any TTSProvider, not just CoquiTTS."""
         custom_tts = MockTTS("custom_output.wav")
-        pipeline = VoicePipeline(stt=MockSTT(), tts=custom_tts)
+        pipeline = VoicePipeline(stt=MockSTT(), tts=custom_tts, agent_runner=MockAgentRunner())
         assert pipeline._tts is custom_tts
 
+    def test_accepts_any_agent_runner(self):
+        agent = MockAgentRunner()
+        pipeline = VoicePipeline(stt=MockSTT(), tts=MockTTS(), agent_runner=agent)
+        assert pipeline._agent is agent
+
     def test_default_output_dir_is_temp(self):
-        import tempfile
-        pipeline = VoicePipeline(stt=MockSTT(), tts=MockTTS())
+        pipeline = VoicePipeline(stt=MockSTT(), tts=MockTTS(), agent_runner=MockAgentRunner())
         assert pipeline._output_dir == tempfile.gettempdir()
 
     def test_custom_output_dir_is_respected(self):
-        pipeline = VoicePipeline(stt=MockSTT(), tts=MockTTS(), output_dir="/custom/path")
+        pipeline = VoicePipeline(stt=MockSTT(), tts=MockTTS(), agent_runner=MockAgentRunner(), output_dir="/custom/path")
         assert pipeline._output_dir == "/custom/path"
 
+    def test_default_agent_runner_used_when_none_given(self):
+        pipeline = VoicePipeline(stt=MockSTT(), tts=MockTTS())
+        assert isinstance(pipeline._agent, DefaultAgentRunner)
+
+
+# ---------------------------------------------------------------------------
+# POST /voice API endpoint
+# ---------------------------------------------------------------------------
 
 class TestVoiceAPIEndpoint:
-    def test_voice_endpoint_returns_200(self, tmp_path):
-        # Create a real wav file so FileResponse can serve it
-        wav_file = tmp_path / "response.wav"
-        wav_file.write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt ")
-
+    def _make_mock_pipeline(self, wav_file):
         mock_pipeline = MagicMock()
         mock_pipeline.process = AsyncMock(return_value=str(wav_file))
+        return mock_pipeline
 
-        with patch("src.api.main.get_voice_pipeline", return_value=mock_pipeline), \
-             patch("src.agent.graph.get_graph"):
-            from src.api.main import app
-            from fastapi.testclient import TestClient
-            client = TestClient(app)
+    def test_voice_endpoint_returns_200(self, tmp_path):
+        wav_file = tmp_path / "response.wav"
+        wav_file.write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt ")
+        mock_pipeline = self._make_mock_pipeline(wav_file)
 
-            audio_bytes = b"RIFF$\x00\x00\x00WAVEfmt "
-            response = client.post(
-                "/voice",
-                files={"audio": ("test.wav", audio_bytes, "audio/wav")},
-            )
+        mock_factory = MagicMock()
+        mock_factory.get_voice_pipeline.return_value = mock_pipeline
+
+        from src.api.main import app, get_factory
+        from fastapi.testclient import TestClient
+        app.dependency_overrides[get_factory] = lambda: mock_factory
+        try:
+            with patch("src.agent.graph.get_graph"):
+                client = TestClient(app)
+                response = client.post(
+                    "/voice",
+                    files={"audio": ("test.wav", b"RIFF$\x00\x00\x00WAVEfmt ", "audio/wav")},
+                )
+        finally:
+            app.dependency_overrides.clear()
 
         assert response.status_code == 200
 
     def test_voice_endpoint_returns_wav_content_type(self, tmp_path):
         wav_file = tmp_path / "response.wav"
         wav_file.write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt ")
+        mock_pipeline = self._make_mock_pipeline(wav_file)
 
-        mock_pipeline = MagicMock()
-        mock_pipeline.process = AsyncMock(return_value=str(wav_file))
+        mock_factory = MagicMock()
+        mock_factory.get_voice_pipeline.return_value = mock_pipeline
 
-        with patch("src.api.main.get_voice_pipeline", return_value=mock_pipeline), \
-             patch("src.agent.graph.get_graph"):
-            from src.api.main import app
-            from fastapi.testclient import TestClient
-            client = TestClient(app)
-            response = client.post(
-                "/voice",
-                files={"audio": ("test.wav", b"fake", "audio/wav")},
-            )
+        from src.api.main import app, get_factory
+        from fastapi.testclient import TestClient
+        app.dependency_overrides[get_factory] = lambda: mock_factory
+        try:
+            with patch("src.agent.graph.get_graph"):
+                client = TestClient(app)
+                response = client.post(
+                    "/voice",
+                    files={"audio": ("test.wav", b"fake", "audio/wav")},
+                )
+        finally:
+            app.dependency_overrides.clear()
 
         assert "audio" in response.headers.get("content-type", "")
 
@@ -145,15 +200,21 @@ class TestVoiceAPIEndpoint:
         mock_pipeline = MagicMock()
         mock_pipeline.process = AsyncMock(side_effect=ValueError("Audio transcription produced no text."))
 
-        with patch("src.api.main.get_voice_pipeline", return_value=mock_pipeline), \
-             patch("src.agent.graph.get_graph"):
-            from src.api.main import app
-            from fastapi.testclient import TestClient
-            client = TestClient(app)
-            response = client.post(
-                "/voice",
-                files={"audio": ("silent.wav", b"fake_silent_audio", "audio/wav")},
-            )
+        mock_factory = MagicMock()
+        mock_factory.get_voice_pipeline.return_value = mock_pipeline
+
+        from src.api.main import app, get_factory
+        from fastapi.testclient import TestClient
+        app.dependency_overrides[get_factory] = lambda: mock_factory
+        try:
+            with patch("src.agent.graph.get_graph"):
+                client = TestClient(app)
+                response = client.post(
+                    "/voice",
+                    files={"audio": ("silent.wav", b"fake_silent_audio", "audio/wav")},
+                )
+        finally:
+            app.dependency_overrides.clear()
 
         assert response.status_code == 422
 
@@ -161,15 +222,21 @@ class TestVoiceAPIEndpoint:
         mock_pipeline = MagicMock()
         mock_pipeline.process = AsyncMock(side_effect=RuntimeError("model crashed"))
 
-        with patch("src.api.main.get_voice_pipeline", return_value=mock_pipeline), \
-             patch("src.agent.graph.get_graph"):
-            from src.api.main import app
-            from fastapi.testclient import TestClient
-            client = TestClient(app)
-            response = client.post(
-                "/voice",
-                files={"audio": ("test.wav", b"fake", "audio/wav")},
-            )
+        mock_factory = MagicMock()
+        mock_factory.get_voice_pipeline.return_value = mock_pipeline
+
+        from src.api.main import app, get_factory
+        from fastapi.testclient import TestClient
+        app.dependency_overrides[get_factory] = lambda: mock_factory
+        try:
+            with patch("src.agent.graph.get_graph"):
+                client = TestClient(app)
+                response = client.post(
+                    "/voice",
+                    files={"audio": ("test.wav", b"fake", "audio/wav")},
+                )
+        finally:
+            app.dependency_overrides.clear()
 
         assert response.status_code == 503
 
@@ -178,14 +245,20 @@ class TestVoiceAPIEndpoint:
         mock_pipeline = MagicMock()
         mock_pipeline.process = AsyncMock(side_effect=RuntimeError(secret))
 
-        with patch("src.api.main.get_voice_pipeline", return_value=mock_pipeline), \
-             patch("src.agent.graph.get_graph"):
-            from src.api.main import app
-            from fastapi.testclient import TestClient
-            client = TestClient(app)
-            response = client.post(
-                "/voice",
-                files={"audio": ("test.wav", b"fake", "audio/wav")},
-            )
+        mock_factory = MagicMock()
+        mock_factory.get_voice_pipeline.return_value = mock_pipeline
+
+        from src.api.main import app, get_factory
+        from fastapi.testclient import TestClient
+        app.dependency_overrides[get_factory] = lambda: mock_factory
+        try:
+            with patch("src.agent.graph.get_graph"):
+                client = TestClient(app)
+                response = client.post(
+                    "/voice",
+                    files={"audio": ("test.wav", b"fake", "audio/wav")},
+                )
+        finally:
+            app.dependency_overrides.clear()
 
         assert secret not in response.text

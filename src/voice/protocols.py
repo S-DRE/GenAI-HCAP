@@ -1,13 +1,13 @@
-"""Abstract interfaces for speech providers.
+"""Abstract interfaces for speech and agent providers.
 
-Defining STTProvider and TTSProvider as ABCs (Abstract Base Classes) means:
+Defining these as ABCs/protocols means:
 
 - Open/Closed: new backends (e.g. cloud Whisper, ElevenLabs) can be added by
   implementing these interfaces without touching any existing code.
 - Liskov Substitution: any concrete implementation can be dropped in wherever
   the abstract type is expected — including test mocks.
 - Dependency Inversion: VoicePipeline and the API depend on these abstractions,
-  not on Whisper or Coqui directly.
+  not on Whisper, Coqui, or the agent directly.
 """
 
 from abc import ABC, abstractmethod
@@ -41,4 +41,19 @@ class TTSProvider(ABC):
 
         Returns:
             Path to the generated audio file.
+        """
+
+
+class AgentRunner(ABC):
+    """Runs the conversational agent and returns a text response."""
+
+    @abstractmethod
+    async def run(self, message: str) -> str:
+        """Send a text message to the agent and return its response.
+
+        Args:
+            message: The user's input text.
+
+        Returns:
+            The agent's text response.
         """

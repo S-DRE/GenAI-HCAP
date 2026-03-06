@@ -1,8 +1,15 @@
 """FastAPI application entry point.
 
-Exposes two endpoints:
-  POST /chat  — text-in, text-out conversational interface
-  POST /voice — audio-in, audio-out voice interface
+Design:
+- ServiceFactory: owns all service construction and reads env config once (SRP).
+  Routes never instantiate services directly (DIP).
+- FastAPI Depends() is used to inject services into routes, keeping route
+  handlers responsible only for HTTP concerns (SRP).
+
+Exposes:
+  GET  /health — liveness probe
+  POST /chat   — text-in, text-out conversational interface
+  POST /voice  — audio-in, audio-out voice interface
 """
 
 import logging
@@ -11,14 +18,9 @@ import tempfile
 
 import structlog
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-
-from src.agent.graph import run_agent
-from src.voice.pipeline import VoicePipeline
-from src.voice.stt import WhisperSTT
-from src.voice.tts import CoquiTTS
 
 load_dotenv()
 
@@ -35,20 +37,10 @@ app = FastAPI(
 
 MAX_MESSAGE_LENGTH = 2_000  # characters — prevents quota exhaustion and prompt-injection spam
 
-# Voice pipeline is built once and reused across requests (lazy model loading
-# inside WhisperSTT and CoquiTTS means no cost until the first voice request).
-_voice_pipeline: VoicePipeline | None = None
 
-
-def get_voice_pipeline() -> VoicePipeline:
-    global _voice_pipeline
-    if _voice_pipeline is None:
-        _voice_pipeline = VoicePipeline(
-            stt=WhisperSTT(model_size=os.environ.get("WHISPER_MODEL_SIZE", "base")),
-            tts=CoquiTTS(model_name=os.environ.get("TTS_MODEL", CoquiTTS.DEFAULT_MODEL)),
-        )
-    return _voice_pipeline
-
+# ---------------------------------------------------------------------------
+# Service models
+# ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=MAX_MESSAGE_LENGTH)
@@ -58,6 +50,48 @@ class ChatResponse(BaseModel):
     response: str
 
 
+# ---------------------------------------------------------------------------
+# Service factory — all construction lives here (SRP / DIP)
+# ---------------------------------------------------------------------------
+
+class ServiceFactory:
+    """Builds and caches application services.
+
+    This is the single place that knows which concrete classes to instantiate.
+    Routes depend on ServiceFactory (or on the abstract types it returns) so
+    they never import CoquiTTS, WhisperSTT, or run_agent directly.
+    """
+
+    def __init__(self) -> None:
+        self._voice_pipeline = None
+
+    def get_voice_pipeline(self):
+        """Return the VoicePipeline singleton, building it on first call."""
+        if self._voice_pipeline is None:
+            from src.voice.pipeline import VoicePipeline
+            from src.voice.stt import WhisperSTT
+            from src.voice.tts import CoquiTTS
+
+            self._voice_pipeline = VoicePipeline(
+                stt=WhisperSTT(model_size=os.environ.get("WHISPER_MODEL_SIZE", "base")),
+                tts=CoquiTTS(model_name=os.environ.get("TTS_MODEL", CoquiTTS.DEFAULT_MODEL)),
+            )
+        return self._voice_pipeline
+
+
+# Module-level factory instance (one per process lifetime)
+_factory = ServiceFactory()
+
+
+def get_factory() -> ServiceFactory:
+    """FastAPI dependency that supplies the ServiceFactory."""
+    return _factory
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
@@ -65,6 +99,8 @@ async def health():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
+    from src.agent.graph import run_agent
+
     logger.info("chat_request_received", message_length=len(request.message))
     try:
         response = await run_agent(request.message)
@@ -80,7 +116,10 @@ async def chat(request: ChatRequest):
 
 
 @app.post("/voice", response_class=FileResponse)
-async def voice(audio: UploadFile = File(..., description="Audio file (wav, mp3, m4a, etc.)")):
+async def voice(
+    audio: UploadFile = File(..., description="Audio file (wav, mp3, m4a, etc.)"),
+    factory: ServiceFactory = Depends(get_factory),
+):
     """Accept a voice message, return a spoken response as a wav file.
 
     The pipeline runs: audio upload → Whisper STT → agent → Coqui TTS → wav download.
@@ -94,7 +133,7 @@ async def voice(audio: UploadFile = File(..., description="Audio file (wav, mp3,
         tmp_path = tmp.name
 
     try:
-        output_path = await get_voice_pipeline().process(tmp_path)
+        output_path = await factory.get_voice_pipeline().process(tmp_path)
     except ValueError as exc:
         logger.warning("voice_transcription_empty", error=str(exc))
         raise HTTPException(status_code=422, detail=str(exc)) from exc

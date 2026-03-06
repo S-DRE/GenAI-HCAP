@@ -1,4 +1,17 @@
+"""LangGraph conversational agent.
+
+Design:
+- LLMProvider: abstract interface for getting a bound and unbound LLM (DIP).
+- GroqLLMProvider: concrete Groq implementation — only responsible for
+  constructing the ChatGroq instances (SRP).
+- GraphBuilder: assembles the LangGraph state machine from an LLMProvider
+  without depending on any concrete LLM (SRP / OCP).
+- run_agent(): public entry point; accepts an optional ResponseValidator so
+  guardrail behaviour is injectable and testable (DIP).
+"""
+
 import os
+from abc import ABC, abstractmethod
 from typing import Annotated
 
 import structlog
@@ -10,7 +23,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 from typing_extensions import TypedDict
 
-from src.guardrails.validators import validate_response
+from src.guardrails.validators import ResponseValidator, default_validator
 from src.tools.escalation import escalate
 from src.tools.rag import retrieve_care_info
 
@@ -33,51 +46,110 @@ class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
 
 
-def build_graph() -> StateGraph:
-    model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-    llm = ChatGroq(
-        model=model,
-        temperature=0,
-        api_key=os.environ.get("GROQ_API_KEY"),
-    ).bind_tools(TOOLS)
-    # Plain LLM without tool binding — used as fallback when model emits malformed tool JSON
-    llm_no_tools = ChatGroq(
-        model=model,
-        temperature=0,
-        api_key=os.environ.get("GROQ_API_KEY"),
-    )
-    logger.info("graph_built", model=model)
+# ---------------------------------------------------------------------------
+# LLM provider abstraction (DIP)
+# ---------------------------------------------------------------------------
 
-    tool_node = ToolNode(TOOLS)
+class LLMProvider(ABC):
+    """Creates LLM instances for use in the agent graph."""
 
-    def call_llm(state: AgentState) -> AgentState:
-        messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
-        try:
-            response = llm.invoke(messages)
-        except BadRequestError as exc:
-            # Smaller models (e.g. 8B) sometimes emit malformed tool-call JSON.
-            # Fall back to a plain call without tools so the request still completes.
-            if "tool_use_failed" in str(exc):
-                logger.warning("llm_tool_call_failed_retrying_without_tools", error=str(exc)[:200])
-                response = llm_no_tools.invoke(messages)
-            else:
-                raise
-        logger.info("llm_response", tool_calls=bool(getattr(response, "tool_calls", [])))
-        return {"messages": [response]}
+    @abstractmethod
+    def get_llm_with_tools(self, tools: list):
+        """Return an LLM bound to the given tools."""
 
-    def should_continue(state: AgentState) -> str:
-        last = state["messages"][-1]
-        return "tools" if last.tool_calls else END
+    @abstractmethod
+    def get_llm(self):
+        """Return a plain LLM with no tool binding."""
 
-    graph = StateGraph(AgentState)
-    graph.add_node("llm", call_llm)
-    graph.add_node("tools", tool_node)
-    graph.set_entry_point("llm")
-    graph.add_conditional_edges("llm", should_continue)
-    graph.add_edge("tools", "llm")
 
-    return graph.compile()
+class GroqLLMProvider(LLMProvider):
+    """ChatGroq-backed LLM provider.
 
+    Reads GROQ_MODEL and GROQ_API_KEY from the environment, so no
+    config is hard-coded here.
+    """
+
+    def __init__(self) -> None:
+        self._model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self._api_key = os.environ.get("GROQ_API_KEY")
+        logger.info("groq_llm_provider_init", model=self._model)
+
+    def get_llm_with_tools(self, tools: list):
+        return ChatGroq(
+            model=self._model,
+            temperature=0,
+            api_key=self._api_key,
+        ).bind_tools(tools)
+
+    def get_llm(self):
+        return ChatGroq(
+            model=self._model,
+            temperature=0,
+            api_key=self._api_key,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Graph builder (SRP — only responsible for wiring the graph)
+# ---------------------------------------------------------------------------
+
+class GraphBuilder:
+    """Assembles the LangGraph state machine from an LLMProvider.
+
+    Keeps graph structure separate from LLM configuration so they can
+    vary independently (OCP).
+    """
+
+    def __init__(
+        self,
+        llm_provider: LLMProvider | None = None,
+        tools: list | None = None,
+        system_prompt: str = SYSTEM_PROMPT,
+    ) -> None:
+        self._llm_provider = llm_provider or GroqLLMProvider()
+        self._tools = tools if tools is not None else TOOLS
+        self._system_prompt = system_prompt
+
+    def build(self) -> StateGraph:
+        llm = self._llm_provider.get_llm_with_tools(self._tools)
+        llm_no_tools = self._llm_provider.get_llm()
+        tool_node = ToolNode(self._tools)
+
+        def call_llm(state: AgentState) -> AgentState:
+            messages = [SystemMessage(content=self._system_prompt)] + state["messages"]
+            try:
+                response = llm.invoke(messages)
+            except BadRequestError as exc:
+                # Smaller models (e.g. 8B) sometimes emit malformed tool-call JSON.
+                # Fall back to a plain call without tools so the request still completes.
+                if "tool_use_failed" in str(exc):
+                    logger.warning(
+                        "llm_tool_call_failed_retrying_without_tools",
+                        error=str(exc)[:200],
+                    )
+                    response = llm_no_tools.invoke(messages)
+                else:
+                    raise
+            logger.info("llm_response", tool_calls=bool(getattr(response, "tool_calls", [])))
+            return {"messages": [response]}
+
+        def should_continue(state: AgentState) -> str:
+            last = state["messages"][-1]
+            return "tools" if last.tool_calls else END
+
+        graph = StateGraph(AgentState)
+        graph.add_node("llm", call_llm)
+        graph.add_node("tools", tool_node)
+        graph.set_entry_point("llm")
+        graph.add_conditional_edges("llm", should_continue)
+        graph.add_edge("tools", "llm")
+
+        return graph.compile()
+
+
+# ---------------------------------------------------------------------------
+# Lazy singleton graph
+# ---------------------------------------------------------------------------
 
 _graph = None
 
@@ -85,11 +157,27 @@ _graph = None
 def get_graph():
     global _graph
     if _graph is None:
-        _graph = build_graph()
+        _graph = GraphBuilder().build()
     return _graph
 
 
-async def run_agent(user_message: str) -> str:
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
+
+async def run_agent(
+    user_message: str,
+    *,
+    validator: ResponseValidator | None = None,
+) -> str:
+    """Run the agent and validate its response.
+
+    Args:
+        user_message: The user's input text.
+        validator:    ResponseValidator to apply; defaults to the module-level
+                      default_validator so production behaviour is unchanged.
+    """
+    _validator = validator or default_validator
     result = await get_graph().ainvoke({"messages": [HumanMessage(content=user_message)]})
     raw_response = result["messages"][-1].content
-    return validate_response(raw_response)
+    return _validator.validate(raw_response)
