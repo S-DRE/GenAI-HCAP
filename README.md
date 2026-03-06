@@ -316,6 +316,18 @@ pytest -m ""
 
 ---
 
+## Next Steps
+
+Potential extensions beyond the kata scope, in rough priority order:
+
+- **Orchestrate workflows across healthcare services** — use LangGraph's multi-agent support to coordinate actions across scheduling, medication reminders, and care-plan updates as a single agentic workflow
+- **Productionise guardrails** — layer Guardrails AI or LlamaGuard 3 on top of the existing `ResponseValidator` for more robust, model-based output filtering
+- **Persistent conversation memory** — store per-patient session history in a database so context survives across API restarts
+- **Authentication & authorisation** — add OAuth 2.0 / JWT to the FastAPI layer before any real patient data is involved
+- **LangSmith evaluation** — use LangSmith's dataset + evaluator tooling to run regression tests against golden Q&A pairs on every CI run
+
+---
+
 ## Glossary
 
 | Acronym / Term | Full Name | Description |
