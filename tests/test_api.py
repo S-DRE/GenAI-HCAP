@@ -48,3 +48,38 @@ class TestChatEndpoint:
     def test_chat_rejects_empty_body(self, client):
         response = client.post("/chat")
         assert response.status_code == 422
+
+
+class TestChatInputValidation:
+    def test_message_above_max_length_rejected(self, client):
+        long_message = "a" * 2_001
+        response = client.post("/chat", json={"message": long_message})
+        assert response.status_code == 422
+
+    def test_message_at_max_length_accepted(self, client):
+        with patch("src.api.main.run_agent", new=AsyncMock(return_value="ok")):
+            response = client.post("/chat", json={"message": "a" * 2_000})
+        assert response.status_code == 200
+
+    def test_empty_string_message_rejected(self, client):
+        response = client.post("/chat", json={"message": ""})
+        assert response.status_code == 422
+
+
+class TestChatErrorHandling:
+    def test_agent_error_returns_503(self, client):
+        with patch("src.api.main.run_agent", new=AsyncMock(side_effect=RuntimeError("boom"))):
+            response = client.post("/chat", json={"message": "Hello"})
+        assert response.status_code == 503
+
+    def test_agent_error_response_does_not_leak_detail(self, client):
+        secret = "org_supersecretorgid_and_api_key_data"
+        with patch("src.api.main.run_agent", new=AsyncMock(side_effect=RuntimeError(secret))):
+            response = client.post("/chat", json={"message": "Hello"})
+        body = response.text
+        assert secret not in body
+
+    def test_agent_error_returns_generic_message(self, client):
+        with patch("src.api.main.run_agent", new=AsyncMock(side_effect=Exception("rate limit 429"))):
+            response = client.post("/chat", json={"message": "Hello"})
+        assert "temporarily unavailable" in response.json()["detail"]
