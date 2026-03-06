@@ -100,8 +100,7 @@ These constraints directly shaped every technology choice in the stack below.
 ### Safety & Guardrails
 | Layer | Choice | Rationale |
 |---|---|---|
-| Output Validation | **Guardrails AI** | Schema-based validation of LLM outputs; supports medical domain rules |
-| Content Filtering | **LlamaGuard 3** (via Groq) | Free, open-source safety model for detecting harmful content in inputs and outputs |
+| Output Validation | **Hand-rolled keyword rules** (`src/guardrails/validators.py`) | `GuardrailRule` ABC with `BlockedPhraseRule` and `EscalationKeywordRule`; blocks medical diagnosis language and emergency signals before any response reaches the user. Kept intentionally simple for a kata — a production system would layer in Guardrails AI or LlamaGuard 3 on top |
 
 ### Observability & Cost Management
 | Layer | Choice | Rationale |
@@ -113,7 +112,7 @@ These constraints directly shaped every technology choice in the stack below.
 | Layer | Choice | Rationale |
 |---|---|---|
 | API Framework | **FastAPI** | Async-first, auto-generated OpenAPI docs, lightweight |
-| Containerization | **Docker + Docker Compose** | Reproducible environments; easy local and cloud deployment |
+| Containerization | **Docker + Docker Compose** | `docker compose up` gives anyone a fully working local instance without installing Python or any dependencies manually — useful for kata demos and reproducible reviews |
 
 ---
 
@@ -126,7 +125,7 @@ LangGraph's graph-based state machine is well-suited for healthcare workflows wh
 Rather than relying solely on the LLM's parametric knowledge, patient care plans and medical guidelines are indexed in a vector store and retrieved at query time. This grounds responses in real, up-to-date patient data and reduces hallucination risk.
 
 ### 3. Guardrails as a First-Class Concern
-Given the sensitive nature of medical advice, output validation is not optional. Guardrails AI enforces rules (e.g., "never recommend dosage changes", "always defer to a doctor for diagnoses") on every LLM response before it reaches the user.
+Given the sensitive nature of medical advice, output validation is not optional. Every LLM response passes through a `ResponseValidator` before reaching the user. Rules are defined as individual `GuardrailRule` classes — currently `BlockedPhraseRule` (blocks diagnosis/prescription language) and `EscalationKeywordRule` (intercepts uncaught emergency signals). The rule set is open for extension without modifying existing code (Open/Closed Principle). A production system would add Guardrails AI or LlamaGuard 3 on top of this foundation.
 
 ### 4. Voice as the Primary Interface
 Elderly patients and caregivers benefit most from voice interaction. Local Whisper (STT) + Coqui TTS provides a full round-trip voice experience with zero API costs and no data leaving the machine.
@@ -163,10 +162,33 @@ GenAI-HCAP/
 
 ## Getting Started
 
-> Prerequisites: **Python 3.12** (required — 3.13+ not yet supported by the AI/ML ecosystem), Docker, Groq API key (free at [console.groq.com](https://console.groq.com)), LangSmith API key (free at [smith.langchain.com](https://smith.langchain.com))
+> Prerequisites: **Docker** (for the Docker path) **or Python 3.12** (for the local path). A Groq API key is required either way — free at [console.groq.com](https://console.groq.com).
+
+### Option A — Docker (no Python install needed)
 
 ```bash
-# Clone the repo
+git clone <repo-url>
+cd GenAI-HCAP
+
+cp .env.example .env
+# Edit .env — set GROQ_API_KEY at minimum
+
+# Builds the image, runs data ingestion, then starts the API
+docker compose up
+
+# API is now available at http://127.0.0.1:8000
+```
+
+On first run `docker compose up` automatically:
+1. Builds the image from the `Dockerfile`
+2. Runs `python -m src.tools.ingest` to populate ChromaDB with synthetic care plans
+3. Starts the FastAPI server on port 8000
+
+The ChromaDB data is stored in a named Docker volume (`chroma_data`) so it persists across restarts. Ingestion only needs to run once.
+
+### Option B — Local Python
+
+```bash
 git clone <repo-url>
 cd GenAI-HCAP
 

@@ -18,6 +18,6 @@ USER appuser
 
 EXPOSE 8000
 
-# Bind to 127.0.0.1 by default so the port is not exposed on all interfaces.
-# Override with --host 0.0.0.0 explicitly if deploying behind a reverse proxy.
-CMD ["uvicorn", "src.api.main:app", "--host", "127.0.0.1", "--port", "8000"]
+# Use 0.0.0.0 so Docker's port mapping (host:8000 → container:8000) works.
+# The host-side binding is controlled by docker-compose ports (127.0.0.1:8000:8000).
+CMD ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

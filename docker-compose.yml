@@ -1,9 +1,34 @@
 services:
-  hcap:
+
+  # One-shot container: ingests the synthetic care plan data into ChromaDB.
+  # Runs before the API starts; skipped on subsequent runs if the volume already
+  # has data (the ingest script is idempotent when reset=False).
+  ingest:
     build: .
-    ports:
-      - "8000:8000"
+    command: python -m src.tools.ingest
     env_file:
       - .env
     volumes:
-      - ./data:/app/data
+      - chroma_data:/app/data/chroma
+
+  # Main API service.
+  # Bound to 127.0.0.1 on the host so the port is not exposed on all interfaces.
+  hcap:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - chroma_data:/app/data/chroma
+    depends_on:
+      - ingest
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  chroma_data:
