@@ -238,17 +238,21 @@ Full test coverage is a core acceptance criterion for this kata. Every module ha
 
 ```
 tests/
-├── test_validators.py      # Guardrails keyword blocking and escalation detection
-├── test_rag.py             # RAG tool: found results, empty results, error handling
-├── test_escalation.py      # Escalation tool: message format and logging
-├── test_stt.py             # WhisperSTT: transcription, lazy loading, protocol compliance
-├── test_tts.py             # CoquiTTS: synthesis, lazy loading, protocol compliance
-├── test_api.py             # FastAPI routes: /health and /chat (unit)
-├── test_agent.py           # LangGraph agent: state, tool wiring, guardrails
-├── test_ingest.py          # Ingestion pipeline: loading, chunking, vectorstore
-├── test_voice_pipeline.py  # VoicePipeline: STT→agent→TTS wiring, API /voice endpoint
-├── test_integration.py     # Integration: full HTTP → agent → tools → guardrails (LLM mocked)
-└── test_e2e.py             # E2E: live server + real Groq API (skipped without GROQ_API_KEY)
+├── conftest.py              # Shared fixtures and .env loader (applies to all subdirs)
+├── unit/
+│   ├── test_validators.py   # Guardrails keyword blocking and escalation detection
+│   ├── test_rag.py          # RAG tool: found results, empty results, error handling
+│   ├── test_escalation.py   # Escalation tool: message format and logging
+│   ├── test_stt.py          # WhisperSTT: transcription, lazy loading, protocol compliance
+│   ├── test_tts.py          # CoquiTTS: synthesis, lazy loading, protocol compliance
+│   ├── test_api.py          # FastAPI routes: /health, /chat, /voice (unit)
+│   ├── test_agent.py        # LangGraph agent: state, tool wiring, guardrails
+│   ├── test_ingest.py       # Ingestion pipeline: loading, chunking, vectorstore
+│   └── test_voice_pipeline.py  # VoicePipeline: STT→agent→TTS wiring, DI compliance
+├── integration/
+│   └── test_integration.py  # Full HTTP → agent → tools → guardrails (LLM mocked)
+└── e2e/
+    └── test_e2e.py          # Live server + real Groq API (skipped without GROQ_API_KEY)
 ```
 
 External dependencies (Groq API, ChromaDB, Whisper, Coqui TTS) are mocked in unit and integration tests so they run fully offline with no API keys required.
