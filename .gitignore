@@ -212,3 +212,18 @@ data/chroma/
 # Generated audio files
 output.wav
 *.wav
+*.mp3
+
+# Whisper model cache (downloaded on first run, can be several GB)
+.cache/whisper/
+
+# Coqui TTS model cache (downloaded on first run)
+# Default cache location used by the TTS library
+tts_models/
+
+# pytest artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml

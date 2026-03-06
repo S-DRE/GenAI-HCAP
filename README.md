@@ -232,3 +232,21 @@ pytest --cov=src --cov-report=term-missing
 - All LLM responses must be validated through guardrails before delivery
 - The system should never provide diagnosis, prescriptions, or emergency medical advice without escalation
 - Patient data used in demos must be **synthetic / anonymized**
+
+---
+
+## Glossary
+
+| Acronym / Term | Full Name | Description |
+|---|---|---|
+| **GenAI** | Generative AI | AI systems capable of generating text, audio, or other content in response to prompts |
+| **HCAP** | Home Care Assistance Platform | The name of this project |
+| **LLM** | Large Language Model | A deep learning model trained on large text datasets to understand and generate human language (e.g. Llama 3.3) |
+| **RAG** | Retrieval-Augmented Generation | A technique that retrieves relevant documents from a knowledge base and feeds them to the LLM as context, grounding responses in real data |
+| **STT** | Speech-to-Text | Technology that converts spoken audio into a written text transcript (implemented here with local Whisper) |
+| **TTS** | Text-to-Speech | Technology that converts written text into synthesised spoken audio (implemented here with local Coqui TTS) |
+| **API** | Application Programming Interface | A set of endpoints that allow software systems to communicate; here exposed via FastAPI |
+| **LPU** | Language Processing Unit | Groq's custom chip designed specifically for fast LLM inference |
+| **GPU** | Graphics Processing Unit | Hardware originally designed for rendering graphics, widely repurposed for AI training and inference |
+| **SDK** | Software Development Kit | A set of tools and libraries for building software against a particular platform or API |
+| **STM** | State Machine | A model of computation where the system transitions between defined states based on inputs; used here to describe LangGraph's agent flow |
