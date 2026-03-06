@@ -63,6 +63,7 @@ Patient Records / Medical Guidelines
 | **Zero cost** | All tools, models, and services must operate within free tiers or run fully locally; no paid API keys |
 | **No cloud infrastructure** | The system must run on a local machine without provisioning paid cloud resources |
 | **Synthetic data only** | All patient data used in demos must be fabricated; no real patient records |
+| **Full test coverage** | Every module must have corresponding unit tests; all critical paths must be covered |
 
 These constraints directly shaped every technology choice in the stack below.
 
@@ -196,6 +197,32 @@ uvicorn src.api.main:app --reload
 | `CHROMA_PERSIST_DIR` | Local path for ChromaDB persistence |
 
 > No paid API keys required. Whisper and Coqui TTS run fully locally.
+
+---
+
+## Testing
+
+Full test coverage is a core acceptance criterion for this kata. Every module has a corresponding test file under `tests/`.
+
+```
+tests/
+├── test_validators.py      # Guardrails keyword blocking and escalation detection
+├── test_rag.py             # RAG tool: found results, empty results, error handling
+├── test_escalation.py      # Escalation tool: message format and logging
+├── test_stt.py             # STT wrapper: transcription output
+├── test_tts.py             # TTS wrapper: audio file generation
+└── test_api.py             # FastAPI routes: /health and /chat end-to-end
+```
+
+External dependencies (Groq API, ChromaDB, Whisper, Coqui TTS) are mocked so tests run fully offline with no API keys required.
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=src --cov-report=term-missing
+```
 
 ---
 
