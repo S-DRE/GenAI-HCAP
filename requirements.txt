@@ -1,0 +1,27 @@
+# Core LLM & Agent
+langgraph==1.0.10
+langchain==1.2.10
+langchain-groq==1.1.2
+langchain-community==0.3.21
+langsmith==0.3.8
+
+# Vector Store & Embeddings
+chromadb==1.5.2
+sentence-transformers==3.4.1
+
+# API
+fastapi==0.135.1
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# Voice (local, no API cost)
+openai-whisper==20240930
+TTS==0.22.0
+
+# Safety & Guardrails
+guardrails-ai==0.9.1
+
+# Configuration & Utilities
+python-dotenv==1.0.1
+structlog==25.1.0
+pydantic==2.10.6
