@@ -222,7 +222,7 @@ tests/
 External dependencies (Groq API, ChromaDB, Whisper, Coqui TTS) are mocked in unit and integration tests so they run fully offline with no API keys required.
 
 ```bash
-# Run all unit + integration tests (no API key needed)
+# Run all unit + integration tests (default — E2E excluded automatically)
 pytest
 
 # Run with coverage report
@@ -233,17 +233,17 @@ pytest --cov=src --cov-report=term-missing
 # 2. Then run:
 pytest -m e2e
 
-# Explicitly exclude E2E tests (default behaviour)
-pytest -m "not e2e"
+# Run everything including E2E (not recommended for day-to-day use)
+pytest -m ""
 ```
 
 ### Test types at a glance
 
 | Type | File | LLM real? | Server needed? | Runs in CI? |
 |---|---|---|---|---|
-| Unit | `test_*.py` (except integration/e2e) | No | No | Yes |
-| Integration | `test_integration.py` | No (mocked) | No | Yes |
-| E2E | `test_e2e.py` | Yes | Yes | Only if key set |
+| Unit | `test_*.py` (except integration/e2e) | No | No | Yes (default) |
+| Integration | `test_integration.py` | No (mocked) | No | Yes (default) |
+| E2E | `test_e2e.py` | Yes | Yes | Opt-in: `pytest -m e2e` |
 
 ---
 
