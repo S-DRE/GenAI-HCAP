@@ -55,7 +55,22 @@ Patient Records / Medical Guidelines
 
 ---
 
+## Design Constraints
+
+| Constraint | Decision |
+|---|---|
+| **Kata scope** | This is an architectural kata — a learning and design exercise, not a production system |
+| **Zero cost** | All tools, models, and services must operate within free tiers or run fully locally; no paid API keys |
+| **No cloud infrastructure** | The system must run on a local machine without provisioning paid cloud resources |
+| **Synthetic data only** | All patient data used in demos must be fabricated; no real patient records |
+
+These constraints directly shaped every technology choice in the stack below.
+
+---
+
 ## Tech Stack
+
+> All components are **free to use** — no paid API keys required.
 
 ### Language & Runtime
 | Layer | Choice | Rationale |
@@ -65,15 +80,15 @@ Patient Records / Medical Guidelines
 ### AI & Orchestration
 | Layer | Choice | Rationale |
 |---|---|---|
-| LLM Provider | **OpenAI GPT-4o** | Strong tool-calling, vision, and structured output support |
+| LLM Provider | **Groq API — Llama 3.3 70B** | Free tier with generous limits; extremely fast inference; OpenAI-compatible SDK; Llama 3.3 70B is capable enough for healthcare assistant workflows |
 | Agent Framework | **LangGraph** | Stateful multi-step agentic workflows; supports conditional edges for escalation logic |
 | RAG Framework | **LangChain** | Integrates cleanly with LangGraph; broad retriever and loader ecosystem |
 
 ### Voice
 | Layer | Choice | Rationale |
 |---|---|---|
-| Speech-to-Text | **OpenAI Whisper** | High accuracy; handles accented/elderly speech well |
-| Text-to-Speech | **OpenAI TTS** | Low-latency, natural-sounding voice output |
+| Speech-to-Text | **OpenAI Whisper (local)** — `openai-whisper` pip package | Runs fully locally on CPU; no API key or cost; best open-source STT accuracy available |
+| Text-to-Speech | **Coqui TTS** — `TTS` pip package | Free, local, high-quality voice synthesis; no API key or cost |
 
 ### Knowledge & Storage
 | Layer | Choice | Rationale |
@@ -85,12 +100,12 @@ Patient Records / Medical Guidelines
 | Layer | Choice | Rationale |
 |---|---|---|
 | Output Validation | **Guardrails AI** | Schema-based validation of LLM outputs; supports medical domain rules |
-| Content Filtering | **OpenAI Moderation API** | Real-time flagging of harmful or unsafe content |
+| Content Filtering | **LlamaGuard 3** (via Groq) | Free, open-source safety model for detecting harmful content in inputs and outputs |
 
 ### Observability & Cost Management
 | Layer | Choice | Rationale |
 |---|---|---|
-| LLM Tracing | **LangSmith** | End-to-end tracing of agent steps, token usage, and latency |
+| LLM Tracing | **LangSmith** (free tier) | End-to-end tracing of agent steps, token usage, and latency; free tier is sufficient for a kata |
 | Logging | **Python `logging` + structlog** | Structured logs for audit trails (important in healthcare contexts) |
 
 ### API & Deployment
@@ -113,10 +128,13 @@ Rather than relying solely on the LLM's parametric knowledge, patient care plans
 Given the sensitive nature of medical advice, output validation is not optional. Guardrails AI enforces rules (e.g., "never recommend dosage changes", "always defer to a doctor for diagnoses") on every LLM response before it reaches the user.
 
 ### 4. Voice as the Primary Interface
-Elderly patients and caregivers benefit most from voice interaction. Whisper STT + OpenAI TTS provides a full round-trip voice experience without requiring third-party telephony infrastructure for the kata scope.
+Elderly patients and caregivers benefit most from voice interaction. Local Whisper (STT) + Coqui TTS provides a full round-trip voice experience with zero API costs and no data leaving the machine.
 
 ### 5. Escalation as a Tool
 Emergency or high-severity situations are handled by a dedicated escalation tool in the agent's toolkit. When the agent detects urgency signals (keywords, sentiment, explicit requests), it triggers the escalation workflow to notify on-call staff.
+
+### 6. Groq for Free, Fast LLM Inference
+Groq's free tier offers some of the fastest LLM inference available (low-latency responses are important for voice interactions). Llama 3.3 70B is the model of choice — open-weight, instruction-tuned, and capable of tool calling and structured output. The Groq SDK is OpenAI-compatible, minimizing migration effort if the LLM provider changes in the future.
 
 ---
 
@@ -127,7 +145,7 @@ GenAI-HCAP/
 ├── src/
 │   ├── agent/           # LangGraph agent definition and graph
 │   ├── tools/           # RAG tool, escalation tool, medication lookup
-│   ├── voice/           # Whisper STT and TTS wrappers
+│   ├── voice/           # Local Whisper STT and Coqui TTS wrappers
 │   ├── guardrails/      # Guardrails AI validators
 │   └── api/             # FastAPI routes
 ├── data/
@@ -144,7 +162,7 @@ GenAI-HCAP/
 
 ## Getting Started
 
-> Prerequisites: Python 3.12+, Docker, OpenAI API key, LangSmith API key
+> Prerequisites: Python 3.12+, Docker, Groq API key (free at [console.groq.com](https://console.groq.com)), LangSmith API key (free at [smith.langchain.com](https://smith.langchain.com))
 
 ```bash
 # Clone the repo
@@ -172,10 +190,12 @@ uvicorn src.api.main:app --reload
 
 | Variable | Description |
 |---|---|
-| `OPENAI_API_KEY` | OpenAI API key for LLM, Whisper, and TTS |
-| `LANGSMITH_API_KEY` | LangSmith tracing key |
+| `GROQ_API_KEY` | Groq API key for Llama 3.3 70B inference (free at console.groq.com) |
+| `LANGSMITH_API_KEY` | LangSmith tracing key (free tier) |
 | `LANGSMITH_PROJECT` | LangSmith project name |
 | `CHROMA_PERSIST_DIR` | Local path for ChromaDB persistence |
+
+> No paid API keys required. Whisper and Coqui TTS run fully locally.
 
 ---
 
