@@ -1,4 +1,4 @@
-"""Root conftest.py — runs before any test module is imported.
+"""tests/conftest.py — runs before any test module is imported.
 
 1. Loads the .env file so that environment variables (GROQ_API_KEY, etc.)
    are available during collection, including pytest.mark.skipif checks
