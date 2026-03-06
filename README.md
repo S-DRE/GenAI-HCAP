@@ -212,18 +212,38 @@ tests/
 ├── test_escalation.py      # Escalation tool: message format and logging
 ├── test_stt.py             # STT wrapper: transcription output
 ├── test_tts.py             # TTS wrapper: audio file generation
-└── test_api.py             # FastAPI routes: /health and /chat end-to-end
+├── test_api.py             # FastAPI routes: /health and /chat (unit)
+├── test_agent.py           # LangGraph agent: state, tool wiring, guardrails
+├── test_ingest.py          # Ingestion pipeline: loading, chunking, vectorstore
+├── test_integration.py     # Integration: full HTTP → agent → tools → guardrails (LLM mocked)
+└── test_e2e.py             # E2E: live server + real Groq API (skipped without GROQ_API_KEY)
 ```
 
-External dependencies (Groq API, ChromaDB, Whisper, Coqui TTS) are mocked so tests run fully offline with no API keys required.
+External dependencies (Groq API, ChromaDB, Whisper, Coqui TTS) are mocked in unit and integration tests so they run fully offline with no API keys required.
 
 ```bash
-# Run all tests
+# Run all unit + integration tests (no API key needed)
 pytest
 
 # Run with coverage report
 pytest --cov=src --cov-report=term-missing
+
+# Run only end-to-end tests (requires live server + GROQ_API_KEY)
+# 1. Start the server:  uvicorn src.api.main:app
+# 2. Then run:
+pytest -m e2e
+
+# Explicitly exclude E2E tests (default behaviour)
+pytest -m "not e2e"
 ```
+
+### Test types at a glance
+
+| Type | File | LLM real? | Server needed? | Runs in CI? |
+|---|---|---|---|---|
+| Unit | `test_*.py` (except integration/e2e) | No | No | Yes |
+| Integration | `test_integration.py` | No (mocked) | No | Yes |
+| E2E | `test_e2e.py` | Yes | Yes | Only if key set |
 
 ---
 
