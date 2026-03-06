@@ -207,3 +207,60 @@ class TestEscalationE2E:
         assert response.status_code == 200
         body = response.json()["response"].lower()
         assert any(word in body for word in ["nurse", "caregiver", "contact", "care team", "report", "healthcare"])
+
+
+# ---------------------------------------------------------------------------
+# Voice — full round-trip via /voice
+#
+# These tests are permanently skipped because they require local Whisper
+# and Coqui TTS models to be installed (heavy optional deps not present in
+# CI). The behaviour is fully covered by the integration tests in
+# test_integration.py (TestVoicePipelineIntegration) where the speech
+# models are replaced with lightweight mocks.
+# These tests are kept here as documentation of the expected E2E behaviour.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.skip(
+    reason=(
+        "Voice E2E requires local Whisper + Coqui TTS models which are not "
+        "installed in CI. Covered by test_integration.py::TestVoicePipelineIntegration."
+    )
+)
+@pytest.mark.e2e
+class TestVoiceE2E:
+    def test_voice_endpoint_returns_audio(self, http_client):
+        """Uploading a real WAV file should return an audio/wav response."""
+        # A minimal valid WAV header (44-byte PCM wav with 0 samples)
+        wav_header = (
+            b"RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00"
+            b"\x01\x00\x01\x00\x80\xbb\x00\x00\x00w\x01\x00"
+            b"\x02\x00\x10\x00data\x00\x00\x00\x00"
+        )
+        response = http_client.post(
+            "/voice",
+            files={"audio": ("question.wav", wav_header, "audio/wav")},
+        )
+        assert response.status_code == 200
+        assert "audio" in response.headers.get("content-type", "")
+
+    def test_voice_response_is_non_empty(self, http_client):
+        """The returned WAV file must contain some bytes."""
+        wav_header = (
+            b"RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00"
+            b"\x01\x00\x01\x00\x80\xbb\x00\x00\x00w\x01\x00"
+            b"\x02\x00\x10\x00data\x00\x00\x00\x00"
+        )
+        response = http_client.post(
+            "/voice",
+            files={"audio": ("question.wav", wav_header, "audio/wav")},
+        )
+        assert len(response.content) > 0
+
+    def test_voice_silent_audio_returns_422(self, http_client):
+        """Sending silent (empty) audio should return 422, not 500."""
+        response = http_client.post(
+            "/voice",
+            files={"audio": ("silence.wav", b"\x00" * 44, "audio/wav")},
+        )
+        # May be 422 (empty transcription) or 200 — must not be 500
+        assert response.status_code in (200, 422)
