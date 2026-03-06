@@ -182,20 +182,22 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your API keys
 
-# Run the API
-uvicorn src.api.main:app --reload
+# Run the API (--env-file loads .env automatically)
+uvicorn src.api.main:app --reload --env-file .env
 ```
 
 ---
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `GROQ_API_KEY` | Groq API key for Llama 3.3 70B inference (free at console.groq.com) |
-| `LANGSMITH_API_KEY` | LangSmith tracing key (free tier) |
-| `LANGSMITH_PROJECT` | LangSmith project name |
-| `CHROMA_PERSIST_DIR` | Local path for ChromaDB persistence |
+| Variable | Required | Description |
+|---|---|---|
+| `GROQ_API_KEY` | Yes | Groq API key for LLM inference (free at console.groq.com) |
+| `GROQ_MODEL` | No | Groq model to use. Default: `llama-3.3-70b-versatile`. Switch to `llama-3.1-8b-instant` if the 70B daily token limit (100k TPD on free tier) is exhausted |
+| `LANGSMITH_API_KEY` | No | LangSmith tracing key (free tier) |
+| `LANGSMITH_PROJECT` | No | LangSmith project name |
+| `CHROMA_PERSIST_DIR` | No | Local path for ChromaDB persistence (default: `./data/chroma`) |
+| `E2E_BASE_URL` | No | Override the server address for E2E tests (default: `http://127.0.0.1:8000`) |
 
 > No paid API keys required. Whisper and Coqui TTS run fully locally.
 
@@ -244,6 +246,8 @@ pytest -m ""
 | Unit | `test_*.py` (except integration/e2e) | No | No | Yes (default) |
 | Integration | `test_integration.py` | No (mocked) | No | Yes (default) |
 | E2E | `test_e2e.py` | Yes | Yes | Opt-in: `pytest -m e2e` |
+
+> **Note:** `TestEscalationE2E` inside `test_e2e.py` is permanently skipped (`@pytest.mark.skip`) because the escalation path requires two sequential LLM calls which consistently exceeds free-tier timeouts. The same behaviour is fully covered by `test_integration.py::TestChatEscalationToolIntegration` where the LLM is mocked. The tests are kept in the file as documentation of the expected live behaviour.
 
 ---
 

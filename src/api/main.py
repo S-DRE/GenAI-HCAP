@@ -2,7 +2,7 @@ import logging
 
 import structlog
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from src.agent.graph import run_agent
@@ -37,6 +37,10 @@ async def health():
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     logger.info("chat_request_received", message=request.message)
-    response = await run_agent(request.message)
+    try:
+        response = await run_agent(request.message)
+    except Exception as exc:
+        logger.error("chat_agent_error", error=str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     logger.info("chat_response_sent", response=response)
     return ChatResponse(response=response)

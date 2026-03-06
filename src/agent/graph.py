@@ -2,6 +2,7 @@ import os
 from typing import Annotated
 
 import structlog
+from groq import BadRequestError
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 from langgraph.graph import END, StateGraph
@@ -33,18 +34,35 @@ class AgentState(TypedDict):
 
 
 def build_graph() -> StateGraph:
+    model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
     llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model=model,
         temperature=0,
         api_key=os.environ.get("GROQ_API_KEY"),
     ).bind_tools(TOOLS)
+    # Plain LLM without tool binding — used as fallback when model emits malformed tool JSON
+    llm_no_tools = ChatGroq(
+        model=model,
+        temperature=0,
+        api_key=os.environ.get("GROQ_API_KEY"),
+    )
+    logger.info("graph_built", model=model)
 
     tool_node = ToolNode(TOOLS)
 
     def call_llm(state: AgentState) -> AgentState:
         messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
-        response = llm.invoke(messages)
-        logger.info("llm_response", tool_calls=bool(response.tool_calls))
+        try:
+            response = llm.invoke(messages)
+        except BadRequestError as exc:
+            # Smaller models (e.g. 8B) sometimes emit malformed tool-call JSON.
+            # Fall back to a plain call without tools so the request still completes.
+            if "tool_use_failed" in str(exc):
+                logger.warning("llm_tool_call_failed_retrying_without_tools", error=str(exc)[:200])
+                response = llm_no_tools.invoke(messages)
+            else:
+                raise
+        logger.info("llm_response", tool_calls=bool(getattr(response, "tool_calls", [])))
         return {"messages": [response]}
 
     def should_continue(state: AgentState) -> str:
