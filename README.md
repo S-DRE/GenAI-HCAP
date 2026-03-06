@@ -163,16 +163,17 @@ GenAI-HCAP/
 
 ## Getting Started
 
-> Prerequisites: Python 3.12+, Docker, Groq API key (free at [console.groq.com](https://console.groq.com)), LangSmith API key (free at [smith.langchain.com](https://smith.langchain.com))
+> Prerequisites: **Python 3.12** (required — 3.13+ not yet supported by the AI/ML ecosystem), Docker, Groq API key (free at [console.groq.com](https://console.groq.com)), LangSmith API key (free at [smith.langchain.com](https://smith.langchain.com))
 
 ```bash
 # Clone the repo
 git clone <repo-url>
 cd GenAI-HCAP
 
-# Create virtual environment
-python -m venv .venv
-.venv\Scripts\activate  # Windows
+# Create virtual environment (must use Python 3.12 explicitly)
+py -3.12 -m venv .venv       # Windows with Python Install Manager
+# python3.12 -m venv .venv   # Mac/Linux alternative
+.venv\Scripts\activate       # Windows
 
 # Install dependencies
 pip install -r requirements.txt

@@ -1,43 +1,58 @@
+import sys
 from unittest.mock import MagicMock, patch
 
 
 class TestSTT:
     def test_transcribe_returns_text(self):
+        mock_whisper = MagicMock()
         mock_model = MagicMock()
         mock_model.transcribe.return_value = {"text": "  Hello, I need help.  "}
+        mock_whisper.load_model.return_value = mock_model
 
-        with patch("whisper.load_model", return_value=mock_model):
-            from src.voice.stt import STT
-            stt = STT(model_size="base")
+        with patch.dict(sys.modules, {"whisper": mock_whisper}):
+            from src.voice import stt as stt_module
+            stt_module.STT._model = None  # reset singleton
+            import importlib
+            importlib.reload(stt_module)
+            stt = stt_module.STT(model_size="base")
             result = stt.transcribe("fake_audio.wav")
 
         assert result == "Hello, I need help."
 
     def test_model_loaded_lazily(self):
-        with patch("whisper.load_model") as mock_load:
-            mock_load.return_value = MagicMock()
-            mock_load.return_value.transcribe.return_value = {"text": "test"}
+        mock_whisper = MagicMock()
+        mock_whisper.load_model.return_value = MagicMock()
+        mock_whisper.load_model.return_value.transcribe.return_value = {"text": "test"}
 
-            from src.voice.stt import STT
-            stt = STT()
-            mock_load.assert_not_called()
-
+        with patch.dict(sys.modules, {"whisper": mock_whisper}):
+            import importlib
+            from src.voice import stt as stt_module
+            importlib.reload(stt_module)
+            stt = stt_module.STT()
+            mock_whisper.load_model.assert_not_called()
             stt.transcribe("audio.wav")
-            mock_load.assert_called_once()
+            mock_whisper.load_model.assert_called_once()
 
     def test_model_loaded_only_once(self):
+        mock_whisper = MagicMock()
         mock_model = MagicMock()
         mock_model.transcribe.return_value = {"text": "hello"}
+        mock_whisper.load_model.return_value = mock_model
 
-        with patch("whisper.load_model", return_value=mock_model) as mock_load:
-            from src.voice.stt import STT
-            stt = STT()
+        with patch.dict(sys.modules, {"whisper": mock_whisper}):
+            import importlib
+            from src.voice import stt as stt_module
+            importlib.reload(stt_module)
+            stt = stt_module.STT()
             stt.transcribe("a.wav")
             stt.transcribe("b.wav")
-
-        mock_load.assert_called_once()
+            mock_whisper.load_model.assert_called_once()
 
     def test_default_model_size_is_base(self):
-        from src.voice.stt import STT
-        stt = STT()
-        assert stt._model_size == "base"
+        mock_whisper = MagicMock()
+        with patch.dict(sys.modules, {"whisper": mock_whisper}):
+            import importlib
+            from src.voice import stt as stt_module
+            importlib.reload(stt_module)
+            stt = stt_module.STT()
+            assert stt._model_size == "base"

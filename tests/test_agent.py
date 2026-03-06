@@ -10,8 +10,10 @@ class TestRunAgent:
         mock_result = {
             "messages": [AIMessage(content="Your care plan says to rest.")]
         }
-        with patch("src.agent.graph._graph") as mock_graph:
-            mock_graph.ainvoke = AsyncMock(return_value=mock_result)
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = AsyncMock(return_value=mock_result)
+
+        with patch("src.agent.graph.get_graph", return_value=mock_graph):
             with patch("src.guardrails.validators.validate_response", side_effect=lambda x: x):
                 from src.agent.graph import run_agent
                 result = await run_agent("What should I do today?")
@@ -24,8 +26,10 @@ class TestRunAgent:
         mock_result = {
             "messages": [AIMessage(content="Response")]
         }
-        with patch("src.agent.graph._graph") as mock_graph:
-            mock_graph.ainvoke = AsyncMock(return_value=mock_result)
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = AsyncMock(return_value=mock_result)
+
+        with patch("src.agent.graph.get_graph", return_value=mock_graph):
             with patch("src.guardrails.validators.validate_response", side_effect=lambda x: x):
                 from src.agent.graph import run_agent
                 await run_agent("My question")
@@ -40,9 +44,11 @@ class TestRunAgent:
         mock_result = {
             "messages": [AIMessage(content="raw llm output")]
         }
-        with patch("src.agent.graph._graph") as mock_graph:
-            mock_graph.ainvoke = AsyncMock(return_value=mock_result)
-            with patch("src.guardrails.validators.validate_response", return_value="validated output") as mock_validate:
+        mock_graph = MagicMock()
+        mock_graph.ainvoke = AsyncMock(return_value=mock_result)
+
+        with patch("src.agent.graph.get_graph", return_value=mock_graph):
+            with patch("src.agent.graph.validate_response", return_value="validated output") as mock_validate:
                 from src.agent.graph import run_agent
                 result = await run_agent("test")
 

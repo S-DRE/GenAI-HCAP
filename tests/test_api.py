@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,7 +6,9 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client():
-    with patch("src.agent.graph.build_graph"):
+    mock_graph = MagicMock()
+    mock_graph.ainvoke = AsyncMock(return_value={"messages": []})
+    with patch("src.agent.graph.get_graph", return_value=mock_graph):
         from src.api.main import app
         return TestClient(app)
 

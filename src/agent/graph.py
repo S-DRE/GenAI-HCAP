@@ -61,10 +61,17 @@ def build_graph() -> StateGraph:
     return graph.compile()
 
 
-_graph = build_graph()
+_graph = None
+
+
+def get_graph():
+    global _graph
+    if _graph is None:
+        _graph = build_graph()
+    return _graph
 
 
 async def run_agent(user_message: str) -> str:
-    result = await _graph.ainvoke({"messages": [HumanMessage(content=user_message)]})
+    result = await get_graph().ainvoke({"messages": [HumanMessage(content=user_message)]})
     raw_response = result["messages"][-1].content
     return validate_response(raw_response)
