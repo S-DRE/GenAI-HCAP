@@ -145,12 +145,12 @@ Groq's free tier offers some of the fastest LLM inference available (low-latency
 GenAI-HCAP/
 ├── src/
 │   ├── agent/           # LangGraph agent definition and graph
-│   ├── tools/           # RAG tool, escalation tool, medication lookup
-│   ├── voice/           # Local Whisper STT and Coqui TTS wrappers
-│   ├── guardrails/      # Guardrails AI validators
-│   └── api/             # FastAPI routes
+│   ├── tools/           # RAG tool, escalation tool, data ingestion
+│   ├── voice/           # Voice layer: protocols, Whisper STT, Coqui TTS, pipeline
+│   ├── guardrails/      # Output validators
+│   └── api/             # FastAPI routes (/chat and /voice)
 ├── data/
-│   ├── care_plans/      # Sample patient care plan documents
+│   ├── care_plans/      # Synthetic patient care plan documents
 │   └── guidelines/      # Medical guideline documents
 ├── tests/
 ├── docker-compose.yml
@@ -182,8 +182,35 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your API keys
 
+# (First time only) Ingest synthetic care plan data into ChromaDB
+python -m src.tools.ingest
+
 # Run the API (--env-file loads .env automatically)
 uvicorn src.api.main:app --reload --env-file .env
+```
+
+---
+
+## API Endpoints
+
+| Method | Path | Input | Output | Description |
+|---|---|---|---|---|
+| `GET` | `/health` | — | `{"status": "ok"}` | Liveness check |
+| `POST` | `/chat` | `{"message": "..."}` | `{"response": "..."}` | Text-in, text-out conversation |
+| `POST` | `/voice` | Audio file (wav/mp3/m4a) | wav audio file | Voice-in, voice-out conversation |
+
+### Text chat example
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "What are my blood glucose targets?"}'
+```
+
+### Voice example
+```bash
+curl -X POST http://localhost:8000/voice \
+  -F "audio=@my_question.wav" \
+  --output response.wav
 ```
 
 ---
@@ -198,6 +225,8 @@ uvicorn src.api.main:app --reload --env-file .env
 | `LANGSMITH_PROJECT` | No | LangSmith project name |
 | `CHROMA_PERSIST_DIR` | No | Local path for ChromaDB persistence (default: `./data/chroma`) |
 | `E2E_BASE_URL` | No | Override the server address for E2E tests (default: `http://127.0.0.1:8000`) |
+| `WHISPER_MODEL_SIZE` | No | Whisper model size: `tiny`, `base`, `small`, `medium`, `large` (default: `base`) |
+| `TTS_MODEL` | No | Coqui TTS model name (default: `tts_models/en/ljspeech/tacotron2-DDC`) |
 
 > No paid API keys required. Whisper and Coqui TTS run fully locally.
 
@@ -212,11 +241,12 @@ tests/
 ├── test_validators.py      # Guardrails keyword blocking and escalation detection
 ├── test_rag.py             # RAG tool: found results, empty results, error handling
 ├── test_escalation.py      # Escalation tool: message format and logging
-├── test_stt.py             # STT wrapper: transcription output
-├── test_tts.py             # TTS wrapper: audio file generation
+├── test_stt.py             # WhisperSTT: transcription, lazy loading, protocol compliance
+├── test_tts.py             # CoquiTTS: synthesis, lazy loading, protocol compliance
 ├── test_api.py             # FastAPI routes: /health and /chat (unit)
 ├── test_agent.py           # LangGraph agent: state, tool wiring, guardrails
 ├── test_ingest.py          # Ingestion pipeline: loading, chunking, vectorstore
+├── test_voice_pipeline.py  # VoicePipeline: STT→agent→TTS wiring, API /voice endpoint
 ├── test_integration.py     # Integration: full HTTP → agent → tools → guardrails (LLM mocked)
 └── test_e2e.py             # E2E: live server + real Groq API (skipped without GROQ_API_KEY)
 ```

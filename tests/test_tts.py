@@ -1,6 +1,8 @@
 import sys
 from unittest.mock import MagicMock, patch
 
+from src.voice.protocols import TTSProvider
+
 
 def _make_tts_mock():
     mock_tts_instance = MagicMock()
@@ -12,14 +14,23 @@ def _make_tts_mock():
     return mock_tts_module, mock_tts_cls, mock_tts_instance
 
 
-class TestTTS:
+class TestCoquiTTS:
+    def test_implements_tts_provider(self):
+        mock_tts_module, _, _ = _make_tts_mock()
+        with patch.dict(sys.modules, {"TTS": mock_tts_module, "TTS.api": mock_tts_module.api}):
+            import importlib
+            from src.voice import tts as tts_module
+            importlib.reload(tts_module)
+            tts = tts_module.CoquiTTS()
+        assert isinstance(tts, TTSProvider)
+
     def test_speak_returns_output_path(self):
         mock_tts_module, _, _ = _make_tts_mock()
         with patch.dict(sys.modules, {"TTS": mock_tts_module, "TTS.api": mock_tts_module.api}):
             import importlib
             from src.voice import tts as tts_module
             importlib.reload(tts_module)
-            tts = tts_module.TTS()
+            tts = tts_module.CoquiTTS()
             result = tts.speak("Hello there.", output_path="test_output.wav")
         assert result == "test_output.wav"
 
@@ -29,7 +40,7 @@ class TestTTS:
             import importlib
             from src.voice import tts as tts_module
             importlib.reload(tts_module)
-            tts = tts_module.TTS()
+            tts = tts_module.CoquiTTS()
             tts.speak("Take your medicine.", output_path="out.wav")
         mock_tts_instance.tts_to_file.assert_called_once_with(
             text="Take your medicine.", file_path="out.wav"
@@ -41,7 +52,7 @@ class TestTTS:
             import importlib
             from src.voice import tts as tts_module
             importlib.reload(tts_module)
-            tts = tts_module.TTS()
+            tts = tts_module.CoquiTTS()
             mock_tts_cls.assert_not_called()
             tts.speak("test")
             mock_tts_cls.assert_called_once()
@@ -52,7 +63,7 @@ class TestTTS:
             import importlib
             from src.voice import tts as tts_module
             importlib.reload(tts_module)
-            tts = tts_module.TTS()
+            tts = tts_module.CoquiTTS()
             tts.speak("first")
             tts.speak("second")
         mock_tts_cls.assert_called_once()
@@ -63,6 +74,6 @@ class TestTTS:
             import importlib
             from src.voice import tts as tts_module
             importlib.reload(tts_module)
-            tts = tts_module.TTS()
+            tts = tts_module.CoquiTTS()
             result = tts.speak("hello")
         assert result == "output.wav"

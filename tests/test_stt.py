@@ -1,8 +1,19 @@
 import sys
 from unittest.mock import MagicMock, patch
 
+from src.voice.protocols import STTProvider
 
-class TestSTT:
+
+class TestWhisperSTT:
+    def test_implements_stt_provider(self):
+        mock_whisper = MagicMock()
+        with patch.dict(sys.modules, {"whisper": mock_whisper}):
+            import importlib
+            from src.voice import stt as stt_module
+            importlib.reload(stt_module)
+            stt = stt_module.WhisperSTT()
+        assert isinstance(stt, STTProvider)
+
     def test_transcribe_returns_text(self):
         mock_whisper = MagicMock()
         mock_model = MagicMock()
@@ -10,11 +21,10 @@ class TestSTT:
         mock_whisper.load_model.return_value = mock_model
 
         with patch.dict(sys.modules, {"whisper": mock_whisper}):
-            from src.voice import stt as stt_module
-            stt_module.STT._model = None  # reset singleton
             import importlib
+            from src.voice import stt as stt_module
             importlib.reload(stt_module)
-            stt = stt_module.STT(model_size="base")
+            stt = stt_module.WhisperSTT(model_size="base")
             result = stt.transcribe("fake_audio.wav")
 
         assert result == "Hello, I need help."
@@ -28,7 +38,7 @@ class TestSTT:
             import importlib
             from src.voice import stt as stt_module
             importlib.reload(stt_module)
-            stt = stt_module.STT()
+            stt = stt_module.WhisperSTT()
             mock_whisper.load_model.assert_not_called()
             stt.transcribe("audio.wav")
             mock_whisper.load_model.assert_called_once()
@@ -43,7 +53,7 @@ class TestSTT:
             import importlib
             from src.voice import stt as stt_module
             importlib.reload(stt_module)
-            stt = stt_module.STT()
+            stt = stt_module.WhisperSTT()
             stt.transcribe("a.wav")
             stt.transcribe("b.wav")
             mock_whisper.load_model.assert_called_once()
@@ -54,5 +64,5 @@ class TestSTT:
             import importlib
             from src.voice import stt as stt_module
             importlib.reload(stt_module)
-            stt = stt_module.STT()
+            stt = stt_module.WhisperSTT()
             assert stt._model_size == "base"

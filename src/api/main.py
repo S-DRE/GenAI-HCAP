@@ -1,11 +1,24 @@
+"""FastAPI application entry point.
+
+Exposes two endpoints:
+  POST /chat  — text-in, text-out conversational interface
+  POST /voice — audio-in, audio-out voice interface
+"""
+
 import logging
+import os
+import tempfile
 
 import structlog
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from src.agent.graph import run_agent
+from src.voice.pipeline import VoicePipeline
+from src.voice.stt import WhisperSTT
+from src.voice.tts import CoquiTTS
 
 load_dotenv()
 
@@ -21,6 +34,20 @@ app = FastAPI(
 )
 
 MAX_MESSAGE_LENGTH = 2_000  # characters — prevents quota exhaustion and prompt-injection spam
+
+# Voice pipeline is built once and reused across requests (lazy model loading
+# inside WhisperSTT and CoquiTTS means no cost until the first voice request).
+_voice_pipeline: VoicePipeline | None = None
+
+
+def get_voice_pipeline() -> VoicePipeline:
+    global _voice_pipeline
+    if _voice_pipeline is None:
+        _voice_pipeline = VoicePipeline(
+            stt=WhisperSTT(model_size=os.environ.get("WHISPER_MODEL_SIZE", "base")),
+            tts=CoquiTTS(model_name=os.environ.get("TTS_MODEL", CoquiTTS.DEFAULT_MODEL)),
+        )
+    return _voice_pipeline
 
 
 class ChatRequest(BaseModel):
@@ -42,8 +69,7 @@ async def chat(request: ChatRequest):
     try:
         response = await run_agent(request.message)
     except Exception as exc:
-        # Log the full detail internally but never expose it to the caller —
-        # raw exception messages can contain API keys, org IDs, or token usage data.
+        # Log full detail internally — never expose it to the caller.
         logger.error("chat_agent_error", error=str(exc))
         raise HTTPException(
             status_code=503,
@@ -51,3 +77,35 @@ async def chat(request: ChatRequest):
         ) from exc
     logger.info("chat_response_sent", response_length=len(response))
     return ChatResponse(response=response)
+
+
+@app.post("/voice", response_class=FileResponse)
+async def voice(audio: UploadFile = File(..., description="Audio file (wav, mp3, m4a, etc.)")):
+    """Accept a voice message, return a spoken response as a wav file.
+
+    The pipeline runs: audio upload → Whisper STT → agent → Coqui TTS → wav download.
+    """
+    logger.info("voice_request_received", filename=audio.filename, content_type=audio.content_type)
+
+    # Save the uploaded audio to a temp file so Whisper can read it from disk.
+    suffix = os.path.splitext(audio.filename or "audio.wav")[1] or ".wav"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(await audio.read())
+        tmp_path = tmp.name
+
+    try:
+        output_path = await get_voice_pipeline().process(tmp_path)
+    except ValueError as exc:
+        logger.warning("voice_transcription_empty", error=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("voice_pipeline_error", error=str(exc))
+        raise HTTPException(
+            status_code=503,
+            detail="The voice assistant is temporarily unavailable. Please try again shortly.",
+        ) from exc
+    finally:
+        os.unlink(tmp_path)
+
+    logger.info("voice_response_ready", output=output_path)
+    return FileResponse(output_path, media_type="audio/wav", filename="response.wav")
