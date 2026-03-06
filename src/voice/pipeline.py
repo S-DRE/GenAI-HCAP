@@ -11,6 +11,7 @@ Design:
 
 import os
 import tempfile
+import uuid
 
 import structlog
 
@@ -84,7 +85,7 @@ class VoicePipeline:
 
         response_text = await self._agent.run(text)
 
-        output_path = os.path.join(self._output_dir, "response.wav")
+        output_path = os.path.join(self._output_dir, f"response_{uuid.uuid4().hex}.wav")
         self._tts.speak(response_text, output_path)
 
         logger.info("voice_pipeline_complete", output=output_path)

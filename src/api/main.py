@@ -35,7 +35,11 @@ app = FastAPI(
     version="0.1.0",
 )
 
-MAX_MESSAGE_LENGTH = 2_000  # characters — prevents quota exhaustion and prompt-injection spam
+MAX_MESSAGE_LENGTH = 2_000   # characters — prevents quota exhaustion and prompt-injection spam
+MAX_AUDIO_BYTES   = 25 * 1024 * 1024  # 25 MB — large enough for several minutes of speech
+
+# Extensions accepted by the /voice endpoint. Only audio formats Whisper can handle.
+_ALLOWED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".m4a", ".ogg", ".flac", ".webm", ".mp4"}
 
 
 # ---------------------------------------------------------------------------
@@ -126,10 +130,28 @@ async def voice(
     """
     logger.info("voice_request_received", filename=audio.filename, content_type=audio.content_type)
 
-    # Save the uploaded audio to a temp file so Whisper can read it from disk.
-    suffix = os.path.splitext(audio.filename or "audio.wav")[1] or ".wav"
+    # Allowlist the file extension — never trust the client-supplied filename directly.
+    raw_ext = os.path.splitext(audio.filename or "")[1].lower()
+    suffix = raw_ext if raw_ext in _ALLOWED_AUDIO_EXTENSIONS else ".wav"
+
+    # Read the upload in chunks to enforce a hard size limit before writing to disk.
+    chunks: list[bytes] = []
+    total = 0
+    chunk_size = 64 * 1024  # 64 KB per read
+    while True:
+        chunk = await audio.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > MAX_AUDIO_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Audio file too large. Maximum allowed size is {MAX_AUDIO_BYTES // (1024 * 1024)} MB.",
+            )
+        chunks.append(chunk)
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(await audio.read())
+        tmp.write(b"".join(chunks))
         tmp_path = tmp.name
 
     try:

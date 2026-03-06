@@ -304,14 +304,15 @@ class _FakeSTT(STTProvider):
 
 
 class _FakeTTS(TTSProvider):
-    def __init__(self, wav_file):
+    def __init__(self):
         self.spoken: list[str] = []
-        self._wav_file = wav_file
 
     def speak(self, text: str, output_path: str) -> str:
         self.spoken.append(text)
-        self._wav_file.write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt ")
-        return str(self._wav_file)
+        # Write a minimal WAV header to whatever path the pipeline chose
+        import pathlib
+        pathlib.Path(output_path).write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt ")
+        return output_path
 
 
 class _FakeAgentRunner(AgentRunner):
@@ -324,15 +325,12 @@ class _FakeAgentRunner(AgentRunner):
 
 def _voice_client_with_mocks(tmp_path, agent_response: str, transcription: str = "What are my medications?"):
     """Build a TestClient whose voice pipeline is completely mocked (no LLM calls)."""
-    wav_file = tmp_path / "response.wav"
-    wav_file.write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt ")
-
-    fake_tts = _FakeTTS(wav_file)
+    fake_tts = _FakeTTS()
     pipeline = VoicePipeline(
         stt=_FakeSTT(transcription),
         tts=fake_tts,
         agent_runner=_FakeAgentRunner(agent_response),
-        output_dir=str(tmp_path),  # ensure response.wav lands in pytest's tmp_path
+        output_dir=str(tmp_path),
     )
 
     from src.api.main import app, get_factory
@@ -422,7 +420,7 @@ class TestVoicePipelineIntegration:
 
         wav_file = tmp_path / "response.wav"
         wav_file.write_bytes(b"RIFF\x24\x00\x00\x00WAVEfmt ")
-        fake_tts = _FakeTTS(wav_file)
+        fake_tts = _FakeTTS()
 
         # Use a real DefaultAgentRunner so tool calls flow through the real graph.
         # The LLM is mocked via ChatGroq patch.
