@@ -1,0 +1,83 @@
+PATIENT CARE PLAN
+=================
+Patient Name: Rosa Delgado
+Date of Birth: 05/11/1950
+Patient ID: HCAP-0071
+Primary Diagnosis: Post-stroke recovery (left-sided weakness), Depression
+Assigned Caregiver: Sofia Andrade
+Plan Created: 10/03/2026
+Plan Review Date: 10/06/2026
+
+---
+
+DAILY ROUTINE
+-------------
+07:30 - Wake up. Assist patient from bed — support on right side to compensate for left weakness.
+08:00 - Personal hygiene with assistance. Patient can brush teeth independently.
+         Assist with dressing — allow patient to do as much as possible (promotes recovery).
+08:30 - Breakfast. Patient has mild dysphagia — use thickened fluids (Level 2: mildly thick).
+09:00 - Morning medication.
+09:30 - Physiotherapy exercises (see Exercise Plan sheet). 20 minutes.
+11:00 - Speech therapy activity: reading aloud for 10 minutes, simple conversation.
+12:30 - Lunch. Thickened fluids, soft foods. Sit patient upright during all meals.
+         Monitor for coughing or choking — stop meal and call nurse if persistent.
+13:30 - Rest or leisure: TV, audiobooks, family video calls (important for mood).
+15:00 - Afternoon medication (antidepressant).
+16:00 - Outdoor time if weather permits. Wheelchair available. 20 minutes of fresh air.
+18:30 - Dinner. Same dietary precautions as lunch.
+19:30 - Evening medication.
+21:00 - Bedtime. Reposition patient to prevent pressure sores (see Positioning Guide).
+
+---
+
+MEDICATION SCHEDULE
+-------------------
+Morning (09:00):
+  - Aspirin 75mg (1 tablet) — stroke prevention, take with food
+  - Atorvastatin 40mg (1 tablet) — cholesterol management
+  - Ramipril 5mg (1 tablet) — blood pressure
+
+Afternoon (15:00):
+  - Sertraline 50mg (1 tablet) — for depression, take with food
+
+Evening (19:30):
+  - Clopidogrel 75mg (1 tablet) — blood thinning, take with food
+
+---
+
+DYSPHAGIA MANAGEMENT
+--------------------
+All fluids must be thickened to Level 2 (mildly thick) using prescribed thickener.
+Do NOT give thin liquids (water, tea, juice) without thickener — aspiration risk.
+Sit patient fully upright (90 degrees) during meals and for 30 minutes after.
+Small bites only. Allow patient to fully swallow before next bite.
+If patient coughs repeatedly during eating: stop feeding, sit upright, call nurse.
+
+---
+
+DEPRESSION MONITORING
+---------------------
+Patient has a history of low mood since stroke onset. Signs to report to nurse:
+  - Refusing meals for more than one day
+  - Refusing to get out of bed
+  - Expressing hopelessness or tearfulness for more than 2 consecutive days
+  - Any mention of self-harm
+
+Encourage social interaction and praise all rehabilitation progress, however small.
+
+---
+
+PRESSURE SORE PREVENTION
+-------------------------
+Reposition patient every 2 hours when in bed.
+Check skin at bony prominences (heels, hips, coccyx, shoulder blades) daily.
+Report any redness that does not fade within 30 minutes to supervising nurse.
+
+---
+
+EMERGENCY CONTACTS
+------------------
+Supervising Nurse: Nurse Claire Bouchard — 555-0175
+Care Coordinator: HCAP Office — 555-0100
+Family Contact: Marco Delgado (husband) — 555-0134
+Emergency Services: 112

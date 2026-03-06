@@ -14,6 +14,8 @@ langsmith==0.7.13
 # Vector Store & Embeddings
 chromadb==1.5.2
 sentence-transformers==5.2.3
+langchain-huggingface==1.2.1
+langchain-chroma
 
 # API
 fastapi==0.135.1

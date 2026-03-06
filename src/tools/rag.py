@@ -1,7 +1,7 @@
 import os
 
 import structlog
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_core.tools import tool
 
 logger = structlog.get_logger()

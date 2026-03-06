@@ -1,0 +1,81 @@
+PATIENT CARE PLAN
+=================
+Patient Name: Eleanor Whitfield
+Date of Birth: 14/03/1942
+Patient ID: HCAP-0042
+Primary Diagnosis: Type 2 Diabetes, Hypertension
+Assigned Caregiver: Maria Santos
+Plan Created: 01/01/2026
+Plan Review Date: 01/07/2026
+
+---
+
+DAILY ROUTINE
+-------------
+07:00 - Wake up. Assist patient to bathroom if needed.
+07:30 - Breakfast. Ensure patient eats a low-sugar, low-sodium meal.
+         Recommended: oatmeal with berries, wholegrain toast, decaf tea.
+         Avoid: fruit juices, white bread, sweetened cereals.
+08:00 - Morning medication (see Medication Schedule below).
+10:00 - Light physical activity: 10-minute slow walk indoors or garden if weather permits.
+12:30 - Lunch. Balanced plate: lean protein, vegetables, small portion of complex carbs.
+13:00 - Rest period. Patient should lie down for 30 minutes.
+15:00 - Afternoon blood glucose check. Record reading in daily log.
+15:30 - Light snack: unsalted crackers with hummus or a small apple.
+18:00 - Dinner. Similar guidelines to lunch. No large portions.
+19:00 - Evening medication (see Medication Schedule below).
+21:00 - Bedtime routine. Assist with hygiene as needed.
+21:30 - Lights out. Ensure bedroom is cool and quiet.
+
+---
+
+MEDICATION SCHEDULE
+-------------------
+Morning (08:00):
+  - Metformin 500mg (1 tablet) — take with food
+  - Amlodipine 5mg (1 tablet) — for blood pressure
+
+Evening (19:00):
+  - Metformin 500mg (1 tablet) — take with food
+  - Lisinopril 10mg (1 tablet) — for blood pressure, take with water
+
+IMPORTANT: Do NOT skip doses. If patient vomits within 30 minutes of taking medication,
+contact the supervising nurse before administering a replacement dose.
+
+---
+
+BLOOD GLUCOSE TARGETS
+---------------------
+Fasting (morning, before breakfast): 4.0 – 7.0 mmol/L
+Post-meal (2 hours after eating): below 10.0 mmol/L
+If reading is above 15.0 mmol/L: contact supervising nurse immediately.
+If reading is below 3.5 mmol/L: administer fast-acting glucose (orange juice or glucose gel)
+and contact supervising nurse within 15 minutes.
+
+---
+
+MOBILITY & FALL RISK
+--------------------
+Risk Level: MEDIUM
+Patient uses a walking frame indoors. Ensure frame is always within reach.
+Non-slip mats must be in place in bathroom and kitchen.
+Do not leave patient unattended on stairs.
+If a fall occurs: do not move patient. Call emergency services, then contact care coordinator.
+
+---
+
+DIETARY RESTRICTIONS
+--------------------
+- Diabetic diet: low glycaemic index foods preferred.
+- Low sodium: no added salt at table, limit processed foods.
+- Adequate hydration: minimum 6 glasses of water per day.
+- Alcohol: not permitted.
+
+---
+
+EMERGENCY CONTACTS
+------------------
+Supervising Nurse: Nurse Pamela Hughes — 555-0191
+Care Coordinator: HCAP Office — 555-0100
+Family Contact: David Whitfield (son) — 555-0147
+Emergency Services: 112

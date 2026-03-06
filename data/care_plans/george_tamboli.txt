@@ -1,0 +1,81 @@
+PATIENT CARE PLAN
+=================
+Patient Name: George Tamboli
+Date of Birth: 22/08/1938
+Patient ID: HCAP-0057
+Primary Diagnosis: Chronic Obstructive Pulmonary Disease (COPD), Mild Cognitive Impairment
+Assigned Caregiver: James Okafor
+Plan Created: 15/02/2026
+Plan Review Date: 15/08/2026
+
+---
+
+DAILY ROUTINE
+-------------
+08:00 - Wake up. Allow patient to rise slowly — dizziness on standing is common.
+08:30 - Breakfast. Small portions. Soft foods preferred (patient has dentures).
+         Recommended: scrambled eggs, soft fruits, warm porridge.
+09:00 - Morning medication and nebuliser treatment (see below).
+10:00 - Cognitive stimulation activity: simple puzzles, reading newspaper, or music.
+12:00 - Lunch. Avoid foods that require heavy chewing.
+13:00 - Nap. Up to 1 hour. Do not let patient sleep longer as it disrupts night sleep.
+15:00 - Afternoon walk if oxygen saturation is above 92%. Short distances only (5 minutes max).
+17:00 - Evening nebuliser treatment.
+18:30 - Dinner. Light meal. Soup and soft bread encouraged.
+19:00 - Evening medication.
+20:30 - Bedtime. Ensure patient is positioned with head slightly elevated (use extra pillow).
+
+---
+
+MEDICATION SCHEDULE
+-------------------
+Morning (09:00):
+  - Salbutamol inhaler — 2 puffs before nebuliser
+  - Ipratropium nebuliser solution — administer via nebuliser mask, 5 minutes
+  - Donepezil 5mg (1 tablet) — for cognitive impairment, take with breakfast
+
+Evening (17:00):
+  - Ipratropium nebuliser solution — repeat as morning
+
+Evening (19:00):
+  - Prednisolone 5mg (1 tablet) — take with food, do not stop abruptly
+
+---
+
+RESPIRATORY MONITORING
+----------------------
+Check oxygen saturation with pulse oximeter at:
+  - Morning: before activity
+  - Afternoon: before outdoor walk
+  - Night: before sleep
+
+Target saturation: 88% – 92% (NOTE: higher targets may suppress respiratory drive in COPD)
+If saturation falls below 85% and patient is breathless: sit patient upright,
+call emergency services immediately, then contact supervising nurse.
+
+---
+
+COGNITIVE IMPAIRMENT NOTES
+---------------------------
+Patient may repeat questions — respond calmly and patiently each time.
+Patient may become confused about time of day or location — gently reorient without arguing.
+Do not leave patient unsupervised near the stove or sharp objects.
+Familiar routines are important — avoid sudden changes to daily schedule.
+
+---
+
+DIETARY RESTRICTIONS
+--------------------
+- Soft food diet due to denture fit and swallowing difficulty.
+- Avoid gas-producing foods (cabbage, beans, fizzy drinks) — worsens breathing discomfort.
+- High calorie, small portions — patient tends to lose weight.
+- Minimum 6 glasses of fluid per day (water or diluted juice).
+
+---
+
+EMERGENCY CONTACTS
+------------------
+Supervising Nurse: Nurse Daniel Ferreira — 555-0183
+Care Coordinator: HCAP Office — 555-0100
+Family Contact: Anita Tamboli (daughter) — 555-0162
+Emergency Services: 112

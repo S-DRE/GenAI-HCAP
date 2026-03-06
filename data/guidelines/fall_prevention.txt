@@ -1,0 +1,86 @@
+MEDICAL GUIDELINE: FALL PREVENTION AND RESPONSE IN HOME CARE
+=============================================================
+Document Reference: HCAP-GL-002
+Version: 1.4
+Issued: February 2026
+
+---
+
+PURPOSE
+-------
+This guideline provides caregivers with standards for assessing fall risk, implementing
+preventive measures, and responding appropriately when a fall occurs.
+
+---
+
+FALL RISK ASSESSMENT
+--------------------
+Each patient's care plan contains a fall risk rating: LOW, MEDIUM, or HIGH.
+
+LOW risk:   Patient is fully mobile and independent. Basic precautions apply.
+MEDIUM risk: Patient has some mobility limitation or history of falls. Enhanced precautions apply.
+HIGH risk:  Patient has significant mobility impairment, recent falls, or neurological condition.
+            Maximum precautions apply. Caregiver must remain within earshot at all times.
+
+---
+
+ENVIRONMENTAL PRECAUTIONS (ALL PATIENTS)
+-----------------------------------------
+- Ensure all walkways are clear of clutter, cables, and loose rugs.
+- Non-slip mats must be in place in bathroom, toilet area, and kitchen.
+- Adequate lighting in all rooms, especially at night (use nightlights).
+- All grab rails must be securely fixed — report any that feel loose immediately.
+- Patient's walking aids (frame, stick, wheelchair) must be within reach at all times.
+- Footwear must be well-fitting and non-slip. No socks-only walking on smooth floors.
+
+---
+
+ADDITIONAL PRECAUTIONS FOR MEDIUM AND HIGH RISK PATIENTS
+---------------------------------------------------------
+- Accompany patient during all transfers (bed to chair, chair to toilet, etc.).
+- Do not leave patient unattended in the bathroom or on stairs.
+- Use transfer belt when assisting with standing if documented in care plan.
+- Bed rails should be raised at night if documented in care plan.
+- Check that the patient call button or alarm pendant is within reach before leaving.
+
+---
+
+WHAT TO DO IF A FALL OCCURS
+----------------------------
+STEP 1 — Stay calm. Do not move the patient immediately.
+STEP 2 — Assess responsiveness: speak to the patient, check if they are conscious.
+STEP 3 — Check for serious injury:
+           - Visible deformity (possible fracture): do NOT attempt to move patient.
+           - Head injury or loss of consciousness: call emergency services (112) immediately.
+           - Complaint of hip, back, or neck pain: do NOT move patient. Call 112.
+STEP 4 — If no serious injury is suspected and patient is alert:
+           - Help patient into a comfortable position (seated or lying) with support.
+           - Do not rush to stand them up — allow a few minutes for composure.
+           - Assist patient to chair or bed only when they feel ready and you have support.
+STEP 5 — Contact the supervising nurse to report the fall within 30 minutes, regardless of outcome.
+STEP 6 — Complete a fall incident report before the end of the visit.
+
+---
+
+AFTER A FALL
+------------
+- Monitor patient more closely for the next 24 hours for signs of delayed injury.
+- Watch for: new pain, bruising, swelling, confusion, reluctance to bear weight.
+- Any new symptoms after a fall must be reported to the supervising nurse immediately.
+- Review the environment with the patient and family to identify and remove the cause.
+
+---
+
+DOCUMENTATION
+-------------
+Every fall (or near-miss) must be documented using the HCAP Incident Report Form.
+Include: date and time, location, patient's account, environmental factors, injuries noted,
+actions taken, and who was contacted.
+
+---
+
+CONTACT FOR GUIDANCE
+--------------------
+HCAP Clinical Lead: 555-0100 (option 2)
+Out-of-hours nurse line: 555-0199
+Emergency Services: 112

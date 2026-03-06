@@ -1,0 +1,85 @@
+MEDICAL GUIDELINE: MEDICATION ADMINISTRATION IN HOME CARE
+=========================================================
+Document Reference: HCAP-GL-001
+Version: 2.1
+Issued: January 2026
+
+---
+
+PURPOSE
+-------
+This guideline sets out the standards for safe medication administration by home care staff.
+It applies to all caregivers operating under the HCAP programme.
+
+---
+
+GENERAL PRINCIPLES
+------------------
+1. Always verify the patient's identity before administering any medication.
+2. Check the medication against the care plan before each administration.
+3. Administer medication at the prescribed time. Do not administer early or late by more than
+   30 minutes without nurse authorisation.
+4. Never crush, split or dissolve tablets unless explicitly instructed in the care plan.
+5. Record every administration in the patient's daily medication log immediately after giving it.
+6. If a patient refuses medication, do not force them. Record the refusal and contact the
+   supervising nurse within one hour.
+
+---
+
+MISSED DOSES
+------------
+If a dose is missed:
+  - Within 1 hour of scheduled time: administer as soon as possible.
+  - More than 1 hour late: do NOT administer. Record as missed and contact supervising nurse.
+  - Never double up doses to compensate for a missed one.
+
+---
+
+STORAGE
+-------
+- All medications must be stored in a locked cabinet or box.
+- Keep medications away from direct sunlight and moisture.
+- Refrigerated medications (e.g. insulin) must be stored at 2–8°C.
+- Check expiry dates at every visit. Do not administer expired medication.
+- Dispose of unused or expired medication via a pharmacy take-back scheme only.
+
+---
+
+ADVERSE REACTIONS
+-----------------
+Signs of an adverse reaction include:
+  - Rash, hives, or swelling of face/lips/throat (possible allergic reaction)
+  - Sudden difficulty breathing
+  - Severe vomiting or diarrhoea
+  - Loss of consciousness or extreme confusion
+
+If any of these occur: call emergency services (112) immediately.
+Do not administer any further medication until emergency services have assessed the patient.
+Contact the supervising nurse after calling emergency services.
+
+---
+
+CONTROLLED DRUGS
+----------------
+Caregivers are NOT authorised to administer controlled drugs (e.g. opioids, benzodiazepines)
+unless they hold a specific authorisation documented in the care plan and countersigned by
+a registered nurse. When in doubt, do not administer and contact the supervising nurse.
+
+---
+
+DOCUMENTATION REQUIREMENTS
+--------------------------
+For each medication administration, record:
+  - Date and time administered
+  - Drug name, dose, and route
+  - Patient's response (any complaints or reactions)
+  - Caregiver signature
+
+Use the HCAP digital log or paper MAR (Medication Administration Record) sheet provided.
+
+---
+
+CONTACT FOR GUIDANCE
+--------------------
+HCAP Clinical Lead: 555-0100 (option 2)
+Out-of-hours nurse line: 555-0199
