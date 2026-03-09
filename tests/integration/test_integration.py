@@ -100,7 +100,7 @@ class TestChatDirectAnswer:
 
 class TestChatGuardrailsIntegration:
     def test_diagnosis_phrase_is_blocked_by_guardrails(self):
-        unsafe_response = "Based on your symptoms, you have hypertension."
+        unsafe_response = "You are diagnosed with hypertension based on your symptoms."
         mock_llm = MagicMock()
         mock_llm.bind_tools.return_value = mock_llm
         mock_llm.invoke.return_value = _make_llm_response(unsafe_response)
@@ -387,7 +387,7 @@ class TestVoicePipelineIntegration:
         Here we use a fake agent that returns an unsafe response to verify the guardrails
         layer (ResponseValidator) fires before the text reaches TTS.
         """
-        unsafe = "Based on your symptoms, you have hypertension."
+        unsafe = "You are diagnosed with hypertension based on your symptoms."
         client, fake_tts = _voice_client_with_mocks(tmp_path, unsafe)
         response = client.post(
             "/voice",

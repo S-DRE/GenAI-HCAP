@@ -101,7 +101,7 @@ class TestRunAgent:
         """When no validator is passed, the default_validator is used and
         a blocked phrase in the LLM output is intercepted."""
         mock_result = {
-            "messages": [AIMessage(content="You have high blood pressure.")]
+            "messages": [AIMessage(content="You are diagnosed with high blood pressure.")]
         }
         mock_graph = MagicMock()
         mock_graph.ainvoke = AsyncMock(return_value=mock_result)

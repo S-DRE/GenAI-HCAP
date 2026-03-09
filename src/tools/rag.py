@@ -1,17 +1,3 @@
-"""RAG retrieval tool.
-
-Design:
-- VectorStoreProvider: abstract interface for similarity search (DIP).
-- ChromaVectorStore: concrete implementation backed by ChromaDB (SRP —
-  only responsible for search, not for the tool logic).
-- retrieve_care_info: the LangChain tool function. Depends on
-  VectorStoreProvider, not on Chroma directly.
-
-The default retriever is a module-level singleton built from env config.
-Tests or alternative backends can supply a different VectorStoreProvider
-without changing any existing code (OCP).
-"""
-
 import os
 from abc import ABC, abstractmethod
 
@@ -25,25 +11,12 @@ COLLECTION_NAME = "care_plans"
 _DEFAULT_K = 3
 
 
-# ---------------------------------------------------------------------------
-# Abstract interface
-# ---------------------------------------------------------------------------
-
 class VectorStoreProvider(ABC):
-    """Performs similarity search over a document collection."""
-
     @abstractmethod
-    def search(self, query: str, k: int = _DEFAULT_K) -> list[str]:
-        """Return up to k relevant document chunks for the given query."""
+    def search(self, query: str, k: int = _DEFAULT_K) -> list[str]: ...
 
-
-# ---------------------------------------------------------------------------
-# Concrete implementation
-# ---------------------------------------------------------------------------
 
 class ChromaVectorStore(VectorStoreProvider):
-    """ChromaDB-backed vector store provider."""
-
     def __init__(
         self,
         collection_name: str = COLLECTION_NAME,
@@ -62,24 +35,10 @@ class ChromaVectorStore(VectorStoreProvider):
         return [doc.page_content for doc in results]
 
 
-# ---------------------------------------------------------------------------
-# Default retriever instance
-# ---------------------------------------------------------------------------
-
 _default_retriever = ChromaVectorStore()
 
 
-# ---------------------------------------------------------------------------
-# LangChain tool
-# ---------------------------------------------------------------------------
-
 def _make_rag_tool(retriever: VectorStoreProvider):
-    """Factory that binds a retriever to the tool function.
-
-    Separating the factory from the tool definition keeps the tool itself
-    stateless and independently testable.
-    """
-
     @tool
     def retrieve_care_info(query: str) -> str:
         """Retrieve relevant care plan information, medication details, or medical guidelines
@@ -103,5 +62,4 @@ def _make_rag_tool(retriever: VectorStoreProvider):
     return retrieve_care_info
 
 
-# Module-level tool instance used by the agent
 retrieve_care_info = _make_rag_tool(_default_retriever)

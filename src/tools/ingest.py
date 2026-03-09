@@ -1,17 +1,3 @@
-"""Document ingestion pipeline.
-
-Design:
-- DocumentLoader:    loads raw .txt files from a directory (SRP).
-- DocumentChunker:  splits raw text into overlapping chunks (SRP).
-- DocumentStore:    abstract interface for persisting chunks (DIP / OCP).
-- ChromaDocumentStore: concrete Chroma-backed implementation.
-- ingest():         orchestrates the three steps; depends on abstractions
-                    so it can be tested with in-memory mocks.
-
-Usage:
-    .venv\\Scripts\\python -m src.tools.ingest
-"""
-
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -34,25 +20,13 @@ CHUNK_SIZE = 500
 CHUNK_OVERLAP = 100
 
 
-# ---------------------------------------------------------------------------
-# Document representation
-# ---------------------------------------------------------------------------
-
 class Document:
-    """Plain data object: a piece of text with associated metadata."""
-
     def __init__(self, content: str, metadata: dict) -> None:
         self.content = content
         self.metadata = metadata
 
 
-# ---------------------------------------------------------------------------
-# Loader — SRP: only reads files from disk
-# ---------------------------------------------------------------------------
-
 class DocumentLoader:
-    """Reads all .txt files from a directory."""
-
     def load(self, directory: Path, source_type: str) -> list[Document]:
         docs: list[Document] = []
         for path in sorted(directory.glob("*.txt")):
@@ -65,13 +39,7 @@ class DocumentLoader:
         return docs
 
 
-# ---------------------------------------------------------------------------
-# Chunker — SRP: only splits text
-# ---------------------------------------------------------------------------
-
 class DocumentChunker:
-    """Splits documents into overlapping chunks."""
-
     def __init__(
         self,
         chunk_size: int = CHUNK_SIZE,
@@ -95,29 +63,15 @@ class DocumentChunker:
         return chunks
 
 
-# ---------------------------------------------------------------------------
-# DocumentStore — abstract interface (DIP / OCP)
-# ---------------------------------------------------------------------------
-
 class DocumentStore(ABC):
-    """Persists document chunks for later retrieval."""
+    @abstractmethod
+    def reset(self) -> None: ...
 
     @abstractmethod
-    def reset(self) -> None:
-        """Clear all existing documents in the store."""
+    def add(self, chunks: list[Document]) -> None: ...
 
-    @abstractmethod
-    def add(self, chunks: list[Document]) -> None:
-        """Persist a list of document chunks."""
-
-
-# ---------------------------------------------------------------------------
-# Concrete Chroma implementation
-# ---------------------------------------------------------------------------
 
 class ChromaDocumentStore(DocumentStore):
-    """Chroma-backed document store."""
-
     def __init__(
         self,
         collection_name: str = COLLECTION_NAME,
@@ -159,27 +113,12 @@ class ChromaDocumentStore(DocumentStore):
         )
 
 
-# ---------------------------------------------------------------------------
-# Orchestration function
-# ---------------------------------------------------------------------------
-
 def ingest(
     reset: bool = False,
     loader: DocumentLoader | None = None,
     chunker: DocumentChunker | None = None,
     store: DocumentStore | None = None,
 ) -> int:
-    """Ingest all documents into the document store.
-
-    Args:
-        reset:   If True, clears the store before ingesting.
-        loader:  DocumentLoader to use; defaults to a plain FileLoader.
-        chunker: DocumentChunker to use; defaults to RecursiveCharacterTextSplitter.
-        store:   DocumentStore to use; defaults to ChromaDocumentStore.
-
-    Returns:
-        Number of chunks ingested.
-    """
     loader = loader or DocumentLoader()
     chunker = chunker or DocumentChunker()
     store = store or ChromaDocumentStore()

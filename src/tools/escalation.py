@@ -12,7 +12,6 @@ def escalate(reason: str) -> str:
     logger.warning("escalation_triggered", reason=reason)
 
     # TODO: integrate with a real notification system (e.g. SMS, email, paging system)
-    # For the kata this logs the event and returns a reassuring confirmation message.
     return (
         "I have alerted your care team about this situation. "
         "Someone will contact you shortly. "

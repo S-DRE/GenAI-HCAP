@@ -1,16 +1,3 @@
-"""Guardrails layer — validates LLM responses before delivery to the user.
-
-Design:
-- GuardrailRule: abstract base class for a single validation concern (SRP, OCP).
-- BlockedPhraseRule / EscalationKeywordRule: concrete rules, each responsible
-  for exactly one type of check.
-- ResponseValidator: composes a list of rules and runs them in order (DIP —
-  depends on the GuardrailRule abstraction, not concrete implementations).
-
-Adding a new rule type never requires editing existing code — only a new class
-that implements GuardrailRule.
-"""
-
 from abc import ABC, abstractmethod
 
 import structlog
@@ -18,29 +5,12 @@ import structlog
 logger = structlog.get_logger()
 
 
-# ---------------------------------------------------------------------------
-# Abstract rule interface
-# ---------------------------------------------------------------------------
-
 class GuardrailRule(ABC):
-    """A single validation rule applied to an LLM response.
-
-    Returns a replacement message if the rule is violated, or None if the
-    response is acceptable.
-    """
-
     @abstractmethod
-    def check(self, response: str) -> str | None:
-        """Validate response. Return a safe fallback string on violation, else None."""
+    def check(self, response: str) -> str | None: ...
 
-
-# ---------------------------------------------------------------------------
-# Concrete rules
-# ---------------------------------------------------------------------------
 
 class BlockedPhraseRule(GuardrailRule):
-    """Blocks responses that contain implicit medical diagnosis or prescription language."""
-
     _PHRASES = [
         "you are diagnosed",
         "you have been diagnosed",
@@ -68,9 +38,6 @@ class BlockedPhraseRule(GuardrailRule):
 
 
 class EscalationKeywordRule(GuardrailRule):
-    """Intercepts responses that contain emergency signals which should have
-    triggered the escalation tool rather than being answered directly."""
-
     _KEYWORDS = [
         "chest pain",
         "can't breathe",
@@ -96,17 +63,7 @@ class EscalationKeywordRule(GuardrailRule):
         return None
 
 
-# ---------------------------------------------------------------------------
-# Validator — composes rules
-# ---------------------------------------------------------------------------
-
 class ResponseValidator:
-    """Runs an ordered list of GuardrailRules against an LLM response.
-
-    Returns the first fallback message produced by a failing rule, or the
-    original response if all rules pass.
-    """
-
     def __init__(self, rules: list[GuardrailRule]) -> None:
         self._rules = rules
 
@@ -118,10 +75,6 @@ class ResponseValidator:
         return response
 
 
-# ---------------------------------------------------------------------------
-# Default validator instance (used by the agent)
-# ---------------------------------------------------------------------------
-
 default_validator = ResponseValidator(
     rules=[
         BlockedPhraseRule(),
@@ -131,9 +84,4 @@ default_validator = ResponseValidator(
 
 
 def validate_response(response: str) -> str:
-    """Module-level convenience wrapper around the default validator.
-
-    Keeps the public API unchanged so callers don't need to be updated
-    when the validator is used as a plain function.
-    """
     return default_validator.validate(response)

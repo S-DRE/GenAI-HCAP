@@ -1,15 +1,3 @@
-"""LangGraph conversational agent.
-
-Design:
-- LLMProvider: abstract interface for getting a bound and unbound LLM (DIP).
-- GroqLLMProvider: concrete Groq implementation — only responsible for
-  constructing the ChatGroq instances (SRP).
-- GraphBuilder: assembles the LangGraph state machine from an LLMProvider
-  without depending on any concrete LLM (SRP / OCP).
-- run_agent(): public entry point; accepts an optional ResponseValidator so
-  guardrail behaviour is injectable and testable (DIP).
-"""
-
 import os
 from abc import ABC, abstractmethod
 from typing import Annotated
@@ -46,29 +34,15 @@ class AgentState(TypedDict):
     messages: Annotated[list[BaseMessage], add_messages]
 
 
-# ---------------------------------------------------------------------------
-# LLM provider abstraction (DIP)
-# ---------------------------------------------------------------------------
-
 class LLMProvider(ABC):
-    """Creates LLM instances for use in the agent graph."""
+    @abstractmethod
+    def get_llm_with_tools(self, tools: list): ...
 
     @abstractmethod
-    def get_llm_with_tools(self, tools: list):
-        """Return an LLM bound to the given tools."""
-
-    @abstractmethod
-    def get_llm(self):
-        """Return a plain LLM with no tool binding."""
+    def get_llm(self): ...
 
 
 class GroqLLMProvider(LLMProvider):
-    """ChatGroq-backed LLM provider.
-
-    Reads GROQ_MODEL and GROQ_API_KEY from the environment, so no
-    config is hard-coded here.
-    """
-
     def __init__(self) -> None:
         self._model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
         self._api_key = os.environ.get("GROQ_API_KEY")
@@ -89,17 +63,7 @@ class GroqLLMProvider(LLMProvider):
         )
 
 
-# ---------------------------------------------------------------------------
-# Graph builder (SRP — only responsible for wiring the graph)
-# ---------------------------------------------------------------------------
-
 class GraphBuilder:
-    """Assembles the LangGraph state machine from an LLMProvider.
-
-    Keeps graph structure separate from LLM configuration so they can
-    vary independently (OCP).
-    """
-
     def __init__(
         self,
         llm_provider: LLMProvider | None = None,
@@ -120,8 +84,8 @@ class GraphBuilder:
             try:
                 response = llm.invoke(messages)
             except BadRequestError as exc:
-                # Smaller models (e.g. 8B) sometimes emit malformed tool-call JSON.
-                # Fall back to a plain call without tools so the request still completes.
+                # Smaller models (e.g. 8B) sometimes emit malformed tool-call JSON;
+                # retry without tools so the request still completes.
                 if "tool_use_failed" in str(exc):
                     logger.warning(
                         "llm_tool_call_failed_retrying_without_tools",
@@ -147,10 +111,6 @@ class GraphBuilder:
         return graph.compile()
 
 
-# ---------------------------------------------------------------------------
-# Lazy singleton graph
-# ---------------------------------------------------------------------------
-
 _graph = None
 
 
@@ -161,22 +121,11 @@ def get_graph():
     return _graph
 
 
-# ---------------------------------------------------------------------------
-# Public entry point
-# ---------------------------------------------------------------------------
-
 async def run_agent(
     user_message: str,
     *,
     validator: ResponseValidator | None = None,
 ) -> str:
-    """Run the agent and validate its response.
-
-    Args:
-        user_message: The user's input text.
-        validator:    ResponseValidator to apply; defaults to the module-level
-                      default_validator so production behaviour is unchanged.
-    """
     _validator = validator or default_validator
     result = await get_graph().ainvoke({"messages": [HumanMessage(content=user_message)]})
     raw_response = result["messages"][-1].content

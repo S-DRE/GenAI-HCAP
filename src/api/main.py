@@ -1,17 +1,3 @@
-"""FastAPI application entry point.
-
-Design:
-- ServiceFactory: owns all service construction and reads env config once (SRP).
-  Routes never instantiate services directly (DIP).
-- FastAPI Depends() is used to inject services into routes, keeping route
-  handlers responsible only for HTTP concerns (SRP).
-
-Exposes:
-  GET  /health — liveness probe
-  POST /chat   — text-in, text-out conversational interface
-  POST /voice  — audio-in, audio-out voice interface
-"""
-
 import logging
 import os
 import tempfile
@@ -35,16 +21,11 @@ app = FastAPI(
     version="0.1.0",
 )
 
-MAX_MESSAGE_LENGTH = 2_000   # characters — prevents quota exhaustion and prompt-injection spam
-MAX_AUDIO_BYTES   = 25 * 1024 * 1024  # 25 MB — large enough for several minutes of speech
-
-# Extensions accepted by the /voice endpoint. Only audio formats Whisper can handle.
+MAX_MESSAGE_LENGTH = 2_000
+MAX_AUDIO_BYTES = 25 * 1024 * 1024
+_UPLOAD_CHUNK_SIZE = 64 * 1024
 _ALLOWED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".m4a", ".ogg", ".flac", ".webm", ".mp4"}
 
-
-# ---------------------------------------------------------------------------
-# Service models
-# ---------------------------------------------------------------------------
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=MAX_MESSAGE_LENGTH)
@@ -54,23 +35,11 @@ class ChatResponse(BaseModel):
     response: str
 
 
-# ---------------------------------------------------------------------------
-# Service factory — all construction lives here (SRP / DIP)
-# ---------------------------------------------------------------------------
-
 class ServiceFactory:
-    """Builds and caches application services.
-
-    This is the single place that knows which concrete classes to instantiate.
-    Routes depend on ServiceFactory (or on the abstract types it returns) so
-    they never import CoquiTTS, WhisperSTT, or run_agent directly.
-    """
-
     def __init__(self) -> None:
         self._voice_pipeline = None
 
     def get_voice_pipeline(self):
-        """Return the VoicePipeline singleton, building it on first call."""
         if self._voice_pipeline is None:
             from src.voice.pipeline import VoicePipeline
             from src.voice.stt import WhisperSTT
@@ -83,18 +52,12 @@ class ServiceFactory:
         return self._voice_pipeline
 
 
-# Module-level factory instance (one per process lifetime)
 _factory = ServiceFactory()
 
 
 def get_factory() -> ServiceFactory:
-    """FastAPI dependency that supplies the ServiceFactory."""
     return _factory
 
-
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
 
 @app.get("/health")
 async def health():
@@ -109,7 +72,7 @@ async def chat(request: ChatRequest):
     try:
         response = await run_agent(request.message)
     except Exception as exc:
-        # Log full detail internally — never expose it to the caller.
+        # Never expose internal error details to the caller.
         logger.error("chat_agent_error", error=str(exc))
         raise HTTPException(
             status_code=503,
@@ -124,22 +87,17 @@ async def voice(
     audio: UploadFile = File(..., description="Audio file (wav, mp3, m4a, etc.)"),
     factory: ServiceFactory = Depends(get_factory),
 ):
-    """Accept a voice message, return a spoken response as a wav file.
-
-    The pipeline runs: audio upload → Whisper STT → agent → Coqui TTS → wav download.
-    """
     logger.info("voice_request_received", filename=audio.filename, content_type=audio.content_type)
 
-    # Allowlist the file extension — never trust the client-supplied filename directly.
+    # Never trust the client-supplied filename — derive extension from an allowlist.
     raw_ext = os.path.splitext(audio.filename or "")[1].lower()
     suffix = raw_ext if raw_ext in _ALLOWED_AUDIO_EXTENSIONS else ".wav"
 
-    # Read the upload in chunks to enforce a hard size limit before writing to disk.
+    # Read in chunks to enforce a size cap before writing to disk.
     chunks: list[bytes] = []
     total = 0
-    chunk_size = 64 * 1024  # 64 KB per read
     while True:
-        chunk = await audio.read(chunk_size)
+        chunk = await audio.read(_UPLOAD_CHUNK_SIZE)
         if not chunk:
             break
         total += len(chunk)
