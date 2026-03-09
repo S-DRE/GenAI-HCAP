@@ -42,13 +42,15 @@ class BlockedPhraseRule(GuardrailRule):
     """Blocks responses that contain implicit medical diagnosis or prescription language."""
 
     _PHRASES = [
-        "you have",
         "you are diagnosed",
-        "you should take",
+        "you have been diagnosed",
         "increase your dose",
         "decrease your dose",
-        "stop taking",
+        "reduce your dose",
+        "stop taking your medication",
         "start taking",
+        "i prescribe",
+        "i recommend taking",
     ]
 
     _FALLBACK = (

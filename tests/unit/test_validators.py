@@ -41,7 +41,7 @@ class TestBlockedPhraseRule:
 
     def test_blocks_diagnosis_phrase(self):
         rule = BlockedPhraseRule()
-        result = rule.check("You have high blood pressure based on your symptoms.")
+        result = rule.check("You are diagnosed with high blood pressure.")
         assert result is not None
         assert "medical advice" in result
 
@@ -55,9 +55,14 @@ class TestBlockedPhraseRule:
         result = rule.check("You could decrease your dose to manage side effects.")
         assert result is not None
 
-    def test_blocks_stop_taking(self):
+    def test_blocks_dosage_reduce(self):
         rule = BlockedPhraseRule()
-        result = rule.check("You should stop taking this medication immediately.")
+        result = rule.check("The doctor wants to reduce your dose immediately.")
+        assert result is not None
+
+    def test_blocks_stop_taking_medication(self):
+        rule = BlockedPhraseRule()
+        result = rule.check("You should stop taking your medication immediately.")
         assert result is not None
 
     def test_blocks_start_taking(self):
@@ -65,10 +70,19 @@ class TestBlockedPhraseRule:
         result = rule.check("You should start taking aspirin daily.")
         assert result is not None
 
+    def test_blocks_i_prescribe(self):
+        rule = BlockedPhraseRule()
+        result = rule.check("I prescribe 500mg of ibuprofen twice a day.")
+        assert result is not None
+
     def test_case_insensitive(self):
         rule = BlockedPhraseRule()
-        result = rule.check("You Have high blood pressure.")
+        result = rule.check("You Are Diagnosed with a condition.")
         assert result is not None
+
+    def test_care_guidance_passes(self):
+        rule = BlockedPhraseRule()
+        assert rule.check("You should take your blood glucose reading before breakfast.") is None
 
     def test_empty_response_passes(self):
         rule = BlockedPhraseRule()
@@ -145,7 +159,7 @@ class TestResponseValidator:
 
     def test_blocked_phrase_rule_integrated(self):
         validator = ResponseValidator(rules=[BlockedPhraseRule()])
-        result = validator.validate("You have a serious condition.")
+        result = validator.validate("You are diagnosed with a serious condition.")
         assert "medical advice" in result
 
     def test_escalation_rule_integrated(self):
@@ -162,9 +176,9 @@ class TestValidateResponseWrapper:
         assert validate_response(response) == response
 
     def test_blocks_diagnosis_phrase(self):
-        result = validate_response("You have high blood pressure based on your symptoms.")
+        result = validate_response("You are diagnosed with high blood pressure.")
         assert "medical advice" in result
-        assert result != "You have high blood pressure based on your symptoms."
+        assert result != "You are diagnosed with high blood pressure."
 
     def test_normal_care_instruction_passes(self):
         response = "Your care plan says to drink 8 glasses of water per day."
