@@ -52,6 +52,7 @@ Vector Store (ChromaDB)
   ▼
 Patient Records / Medical Guidelines
 ```
+<img width="449" height="624" alt="Detailed_Overview" src="https://github.com/user-attachments/assets/921571a4-740f-4789-81ad-4a5e4b5db8d0" />
 
 ---
 
